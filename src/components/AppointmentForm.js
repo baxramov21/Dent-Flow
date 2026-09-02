@@ -45,6 +45,7 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
   const [isAddingService, setIsAddingService] = useState(false)
   const [newServiceName, setNewServiceName] = useState('')
   const [newServicePrice, setNewServicePrice] = useState('')
+  const [patientFinancials, setPatientFinancials] = useState(null)
 
   useEffect(() => {
     if (!clinic) return
@@ -76,6 +77,58 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
 
     loadDropdownData()
   }, [clinic])
+
+  useEffect(() => {
+    async function loadPatientData() {
+      if (!formData.patient_id || !clinic) {
+        setPatientFinancials(null)
+        if (!initialData) setSelectedServices({})
+        return
+      }
+
+      let planIdToLoad = initialData?.treatment_plan_id
+      if (!planIdToLoad) {
+        const { data: activePlan } = await supabase
+          .from('treatment_plans')
+          .select('id')
+          .eq('patient_id', formData.patient_id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        if (activePlan) planIdToLoad = activePlan.id
+      }
+
+      if (planIdToLoad) {
+        const { data: existingItems } = await supabase
+          .from('treatment_items')
+          .select('service_id')
+          .eq('treatment_plan_id', planIdToLoad)
+          .in('status', ['planned', 'in_progress'])
+        
+        if (existingItems) {
+          const sel = {}
+          existingItems.forEach(item => {
+            sel[item.service_id] = (sel[item.service_id] || 0) + 1
+          })
+          setSelectedServices(sel)
+        }
+      }
+
+      const [itemsRes, paymentsRes] = await Promise.all([
+        supabase.from('treatment_items').select('price_override, treatment_plans!inner(patient_id)').eq('status', 'completed').eq('treatment_plans.patient_id', formData.patient_id).not('price_override', 'is', null),
+        supabase.from('payments').select('amount').eq('patient_id', formData.patient_id)
+      ])
+
+      const totalBilled = (itemsRes.data || []).reduce((sum, i) => sum + (i.price_override || 0), 0)
+      const totalPaid = (paymentsRes.data || []).reduce((sum, p) => sum + (p.amount || 0), 0)
+      const debt = Math.max(0, totalBilled - totalPaid)
+
+      setPatientFinancials({ totalBilled, totalPaid, debt })
+    }
+    
+    loadPatientData()
+  }, [formData.patient_id, clinic, initialData, supabase])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -484,13 +537,36 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         )}
       </div>
 
-      {!initialData?.id && (
-        <>
           <hr style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+
+      {!isNewPatient && formData.patient_id && (
+        <>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Bemor Qarzdorligi (Hisoboti)</h3>
+          {patientFinancials ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', padding: '12px', backgroundColor: patientFinancials.debt > 0 ? '#FEF2F2' : '#F8FAFC', border: patientFinancials.debt > 0 ? '1px solid #FECACA' : '1px solid #E2E8F0', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Jami xizmatlar</span>
+                <span style={{ fontSize: '14px', fontWeight: '600' }}>{patientFinancials.totalBilled.toLocaleString()} UZS</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>To'langan</span>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: '#15803D' }}>{patientFinancials.totalPaid.toLocaleString()} UZS</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '12px', color: patientFinancials.debt > 0 ? '#B91C1C' : 'var(--text-secondary)' }}>Qarzdorlik</span>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: patientFinancials.debt > 0 ? '#B91C1C' : 'var(--text-primary)' }}>{patientFinancials.debt.toLocaleString()} UZS</span>
+              </div>
+            </div>
+          ) : (
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Yuklanmoqda...</span>
+          )}
+          <hr style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+        </>
+      )}
+
+      <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Muolajalar (Xizmatlar)</h3>
     
-          <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Muolajalar (Xizmatlar)</h3>
-    
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
          {Object.entries(
            services.reduce((acc, s) => {
              const cat = s.category || 'Boshqa'
@@ -560,8 +636,6 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
            </div>
          )}
       </div>
-        </>
-      )}
 
       <hr style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
 
