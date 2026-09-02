@@ -54,7 +54,7 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
         const [patientsRes, staffRes, servicesRes] = await Promise.all([
           supabase.from('patients').select('id, full_name').eq('clinic_id', clinic.id).order('full_name'),
           supabase.from('staff').select('id, full_name, specialization').eq('clinic_id', clinic.id).eq('role', 'dentist'),
-          supabase.from('services').select('id, name, price').eq('clinic_id', clinic.id).eq('is_active', true).order('name')
+          supabase.from('services').select('id, name, price, category').eq('clinic_id', clinic.id).eq('is_active', true).order('name')
         ])
 
         if (patientsRes.error) throw patientsRes.error
