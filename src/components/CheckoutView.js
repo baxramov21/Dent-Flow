@@ -91,7 +91,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
 
   const handleAddNewCustomService = async () => {
     if (!newServiceName.trim() || !newServicePrice) return
-    const priceValue = parseInt(newServicePrice) * 1000
+    const priceValue = parseInt(newServicePrice)
     
     const { data, error } = await supabase.from('services').insert([{
        clinic_id: appointment.clinic_id,
@@ -288,19 +288,6 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
                     )}
                   </div>
                 ))}
-                
-                {!isAddingService ? (
-                  <button type="button" onClick={() => setIsAddingService(true)} style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '12px', color: 'var(--accent)', backgroundColor: 'transparent', border: '1px dashed var(--accent)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: '500', marginTop: '4px' }}>
-                    + Boshqa xizmat yaratish
-                  </button>
-                ) : (
-                  <div style={{ display: 'flex', gap: '8px', padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
-                    <input type="text" placeholder="Xizmat nomi" value={newServiceName} onChange={e => setNewServiceName(e.target.value)} style={{ flex: 1, minWidth: '150px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', outline: 'none' }} />
-                    <input type="number" placeholder="Narxi (Ming so'm, masalan: 50)" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)} style={{ width: '220px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', outline: 'none' }} />
-                    <button type="button" onClick={handleAddNewCustomService} style={{ padding: '8px 16px', backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>Yaratish</button>
-                    <button type="button" onClick={() => setIsAddingService(false)} style={{ padding: '8px 12px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Bekor qilish</button>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -310,11 +297,12 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
                 <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Bajarilgan xizmatlar (Ro'yxat)</h3>
               </div>
               
-              {items.length === 0 ? (
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Xizmatlar yo'q. Yangi xizmat qo'shing.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {items.map(item => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                {items.length === 0 && (
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Xizmatlar yo'q. Yuqoridan yoki pastdan yangi xizmat qo'shing.</p>
+                )}
+                
+                {items.map(item => (
                     <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', backgroundColor: item.selected ? 'var(--bg-hover)' : 'transparent' }}>
                       <input 
                         type="checkbox" 
@@ -343,6 +331,18 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
                       )}
                     </div>
                   ))}
+              </div>
+              
+              {!isAddingService ? (
+                <button type="button" onClick={() => setIsAddingService(true)} style={{ width: '100%', padding: '10px 12px', fontSize: '13px', color: 'var(--accent)', backgroundColor: 'transparent', border: '1px dashed var(--accent)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: '500', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                  + Boshqa xizmat (ad-hoc) qo'shish
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input type="text" placeholder="Xizmat nomi (Masalan: Ukol qilish)" value={newServiceName} onChange={e => setNewServiceName(e.target.value)} style={{ flex: 1, minWidth: '150px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', outline: 'none' }} />
+                  <input type="number" placeholder="Narxi (so'm)" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)} style={{ width: '220px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', outline: 'none' }} />
+                  <button type="button" onClick={handleAddNewCustomService} style={{ padding: '8px 16px', backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>Qo'shish</button>
+                  <button type="button" onClick={() => setIsAddingService(false)} style={{ padding: '8px 12px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Bekor qilish</button>
                 </div>
               )}
             </div>
