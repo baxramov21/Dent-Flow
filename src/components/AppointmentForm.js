@@ -156,6 +156,32 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         throw new Error(`Klinika tushlik tanaffusida (${breakStart} - ${breakEnd}). Ushbu vaqtga navbat yozib bo'lmaydi.`)
       }
 
+      // Create full ISO strings for start and end
+      const startDateTime = new Date(`${formData.date}T${formData.start_time}:00`)
+      const endDateTime = new Date(startDateTime.getTime() + formData.duration_minutes * 60000)
+
+      // ---- Double-booking conflict check ----
+      const { data: conflicts } = await supabase
+        .from('appointments')
+        .select('id, start_time, end_time')
+        .eq('dentist_id', formData.dentist_id)
+        .eq('clinic_id', clinic.id)
+        .not('status', 'in', '("cancelled")')
+        .lt('start_time', endDateTime.toISOString())
+        .gt('end_time', startDateTime.toISOString())
+
+      if (conflicts && conflicts.length > 0) {
+        // filter out current appointment when editing
+        const actualConflicts = conflicts.filter(c => c.id !== initialData?.id)
+        if (actualConflicts.length > 0) {
+          const conflictTime = new Date(actualConflicts[0].start_time)
+            .toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+          const dentistName = dentists.find(d => d.id === formData.dentist_id)?.full_name || 'Shifokor'
+          throw new Error(`${dentistName} soat ${conflictTime} da allaqachon band! Iltimos boshqa vaqtni tanlang.`)
+        }
+      }
+      // ---- End conflict check ----
+
       let finalPatientId = formData.patient_id
       let planId = null
 
@@ -231,31 +257,6 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         }
       }
 
-      // Create full ISO strings for start and end
-      const startDateTime = new Date(`${formData.date}T${formData.start_time}:00`)
-      const endDateTime = new Date(startDateTime.getTime() + formData.duration_minutes * 60000)
-
-      // ---- Double-booking conflict check ----
-      const { data: conflicts } = await supabase
-        .from('appointments')
-        .select('id, start_time, end_time')
-        .eq('dentist_id', formData.dentist_id)
-        .eq('clinic_id', clinic.id)
-        .not('status', 'in', '("cancelled")')
-        .lt('start_time', endDateTime.toISOString())
-        .gt('end_time', startDateTime.toISOString())
-
-      if (conflicts && conflicts.length > 0) {
-        // filter out current appointment when editing
-        const actualConflicts = conflicts.filter(c => c.id !== initialData?.id)
-        if (actualConflicts.length > 0) {
-          const conflictTime = new Date(actualConflicts[0].start_time)
-            .toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-          const dentistName = dentists.find(d => d.id === formData.dentist_id)?.full_name || 'Shifokor'
-          throw new Error(`${dentistName} soat ${conflictTime} da allaqachon band! Iltimos boshqa vaqtni tanlang.`)
-        }
-      }
-      // ---- End conflict check ----
 
       if (initialData?.id) {
         // Update existing appointment
