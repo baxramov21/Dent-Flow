@@ -39,9 +39,7 @@ export default function PublicLayout({ children }) {
             backgroundColor: 'var(--accent)', color: 'white', padding: '10px 20px', 
             borderRadius: 'var(--radius-sm)', textDecoration: 'none', fontWeight: '500',
             transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = 'var(--accent-hover)'}
-          onMouseOut={(e) => e.target.style.backgroundColor = 'var(--accent)'}>
+          }}>
             Ro'yxatdan o'tish
           </Link>
         </nav>
