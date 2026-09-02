@@ -40,7 +40,8 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
 
   // Services State
   const [services, setServices] = useState([])
-  const [selectedServices, setSelectedServices] = useState([])
+  const [selectedServices, setSelectedServices] = useState({}) // { id: quantity }
+  const [expandedCategories, setExpandedCategories] = useState({}) // { categoryName: boolean }
   const [isAddingService, setIsAddingService] = useState(false)
   const [newServiceName, setNewServiceName] = useState('')
   const [newServicePrice, setNewServicePrice] = useState('')
@@ -119,7 +120,8 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
 
     if (!error && data) {
        setServices(prev => [...prev, data])
-       setSelectedServices(prev => [...prev, data.id])
+       setSelectedServices(prev => ({ ...prev, [data.id]: 1 }))
+       setExpandedCategories(prev => ({ ...prev, [data.category || 'Boshqa']: true }))
        setNewServiceName('')
        setNewServicePrice('')
        setIsAddingService(false)
@@ -268,19 +270,30 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
       if (insertError) throw insertError
 
       // Add selected services to treatment items
-      if (planId && selectedServices.length > 0) {
-         const itemsToInsert = selectedServices.map(serviceId => {
+      const selectedIds = Object.keys(selectedServices)
+      if (planId && selectedIds.length > 0) {
+         const itemsToInsert = []
+         
+         for (const serviceId of selectedIds) {
+            const quantity = selectedServices[serviceId]
             const svc = services.find(s => s.id === serviceId)
-            return {
-               treatment_plan_id: planId,
-               service_id: serviceId,
-               price_override: svc.price,
-               status: 'planned',
-               clinic_id: clinic.id
+            if (!svc) continue
+            
+            for (let i = 0; i < quantity; i++) {
+               itemsToInsert.push({
+                  treatment_plan_id: planId,
+                  service_id: serviceId,
+                  price_override: svc.price,
+                  status: 'planned',
+                  clinic_id: clinic.id
+               })
             }
-         })
-         const { error: itemsError } = await supabase.from('treatment_items').insert(itemsToInsert)
-         if (itemsError) console.error("Error inserting treatment items:", itemsError)
+         }
+         
+         if (itemsToInsert.length > 0) {
+           const { error: itemsError } = await supabase.from('treatment_items').insert(itemsToInsert)
+           if (itemsError) console.error("Error inserting treatment items:", itemsError)
+         }
       }
       
       onSuccess(data)
@@ -449,17 +462,62 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
       <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Muolajalar (Xizmatlar)</h3>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {services.map(s => (
-               <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: '20px', cursor: 'pointer', backgroundColor: selectedServices.includes(s.id) ? 'var(--accent)' : 'var(--bg-card)', color: selectedServices.includes(s.id) ? 'white' : 'var(--text-primary)', fontSize: '13px', transition: 'all 0.2s' }}>
-                 <input type="checkbox" style={{ display: 'none' }} checked={selectedServices.includes(s.id)} onChange={() => {
-                    setSelectedServices(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])
-                 }} />
-                 {s.name} ({(s.price).toLocaleString()} UZS)
-               </label>
-            ))}
-            {services.length === 0 && <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Klinikada xizmatlar topilmadi. Qo'shing.</span>}
-         </div>
+         {Object.entries(
+           services.reduce((acc, s) => {
+             const cat = s.category || 'Boshqa'
+             if (!acc[cat]) acc[cat] = []
+             acc[cat].push(s)
+             return acc
+           }, {})
+         ).map(([category, items]) => (
+           <div key={category} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+             <button type="button" onClick={() => setExpandedCategories(prev => ({...prev, [category]: !prev[category]}))} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: 'var(--bg-card)', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>
+               {category}
+               <span style={{ color: 'var(--text-muted)' }}>{expandedCategories[category] ? '▼' : '▶'}</span>
+             </button>
+             {expandedCategories[category] && (
+               <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: 'white', borderTop: '1px solid var(--border)' }}>
+                 {items.map(s => (
+                   <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', backgroundColor: selectedServices[s.id] ? '#F0F9FF' : 'transparent', transition: 'all 0.2s' }}>
+                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}>
+                       <input type="checkbox" checked={!!selectedServices[s.id]} onChange={() => {
+                          setSelectedServices(prev => {
+                             if (prev[s.id]) {
+                               const copy = { ...prev }; delete copy[s.id]; return copy;
+                             }
+                             return { ...prev, [s.id]: 1 }
+                          })
+                       }} style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }} />
+                       <span style={{ fontSize: '14px', fontWeight: selectedServices[s.id] ? '500' : '400', color: selectedServices[s.id] ? 'var(--accent)' : 'var(--text-primary)' }}>{s.name}</span>
+                       <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>({(s.price).toLocaleString()} UZS)</span>
+                     </label>
+                     {selectedServices[s.id] && (
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '2px' }}>
+                         <button type="button" onClick={(e) => { 
+                            e.preventDefault()
+                            setSelectedServices(prev => {
+                               const qty = (prev[s.id] || 0) - 1
+                               if (qty <= 0) {
+                                 const copy = { ...prev }; delete copy[s.id]; return copy;
+                               }
+                               return { ...prev, [s.id]: qty }
+                            })
+                         }} style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: 'none', backgroundColor: '#F3F4F6', cursor: 'pointer', color: 'var(--text-primary)' }}>-</button>
+                         <span style={{ fontSize: '13px', fontWeight: '600', minWidth: '16px', textAlign: 'center' }}>{selectedServices[s.id]}</span>
+                         <button type="button" onClick={(e) => { 
+                            e.preventDefault()
+                            setSelectedServices(prev => ({ ...prev, [s.id]: (prev[s.id] || 0) + 1 }))
+                         }} style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: 'none', backgroundColor: '#F3F4F6', cursor: 'pointer', color: 'var(--text-primary)' }}>+</button>
+                       </div>
+                     )}
+                   </div>
+                 ))}
+               </div>
+             )}
+           </div>
+         ))}
+         {services.length === 0 && <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Klinikada xizmatlar topilmadi. Qo'shing.</span>}
+      </div>
          
          {!isAddingService ? (
            <button type="button" onClick={() => setIsAddingService(true)} style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '13px', color: 'var(--accent)', backgroundColor: 'transparent', border: '1px dashed var(--accent)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: '500' }}>
