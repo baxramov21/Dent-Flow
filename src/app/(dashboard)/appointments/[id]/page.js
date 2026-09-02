@@ -23,8 +23,8 @@ export default function AppointmentManagerPage({ params }) {
         .from('appointments')
         .select(`
           *,
-          patients (id, full_name, phone, address, total_debt),
-          staff (id, full_name)
+          patients (id, full_name, phone, address),
+          staff:dentist_id (id, full_name)
         `)
         .eq('id', id)
         .single()
