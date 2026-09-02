@@ -6,7 +6,7 @@ import { useClinic } from '@/context/ClinicContext'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 
-export default function AppointmentForm({ onSuccess, onCancel }) {
+export default function AppointmentForm({ initialData = null, onSuccess, onCancel }) {
   const { clinic } = useClinic()
   const supabase = createClient()
   
@@ -19,12 +19,12 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
   
   // Form State
   const [formData, setFormData] = useState({
-    patient_id: '',
-    dentist_id: '',
-    date: new Date().toISOString().split('T')[0],
-    start_time: '09:00',
-    duration_minutes: 30,
-    notes: ''
+    patient_id: initialData?.patient_id || '',
+    dentist_id: initialData?.dentist_id || '',
+    date: initialData ? new Date(new Date(initialData.start_time).getTime() + (5 * 60 * 60 * 1000)).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], // UTC+5 offset fix
+    start_time: initialData ? new Date(new Date(initialData.start_time).getTime() + (5 * 60 * 60 * 1000)).toISOString().substring(11, 16) : '09:00',
+    duration_minutes: initialData ? Math.round((new Date(initialData.end_time) - new Date(initialData.start_time)) / 60000) : 30,
+    notes: initialData?.notes || ''
   })
 
   // New Patient State
@@ -246,12 +246,35 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
         .gt('end_time', startDateTime.toISOString())
 
       if (conflicts && conflicts.length > 0) {
-        const conflictTime = new Date(conflicts[0].start_time)
-          .toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-        const dentistName = dentists.find(d => d.id === formData.dentist_id)?.full_name || 'Shifokor'
-        throw new Error(`${dentistName} soat ${conflictTime} da allaqachon band! Iltimos boshqa vaqtni tanlang.`)
+        // filter out current appointment when editing
+        const actualConflicts = conflicts.filter(c => c.id !== initialData?.id)
+        if (actualConflicts.length > 0) {
+          const conflictTime = new Date(actualConflicts[0].start_time)
+            .toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+          const dentistName = dentists.find(d => d.id === formData.dentist_id)?.full_name || 'Shifokor'
+          throw new Error(`${dentistName} soat ${conflictTime} da allaqachon band! Iltimos boshqa vaqtni tanlang.`)
+        }
       }
       // ---- End conflict check ----
+
+      if (initialData?.id) {
+        // Update existing appointment
+        const { data, error: updateError } = await supabase
+          .from('appointments')
+          .update({
+            dentist_id: formData.dentist_id,
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
+            notes: formData.notes
+          })
+          .eq('id', initialData.id)
+          .select()
+          .single()
+
+        if (updateError) throw updateError
+        onSuccess(data)
+        return
+      }
 
       const { data, error: insertError } = await supabase
         .from('appointments')
@@ -457,11 +480,13 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
         )}
       </div>
 
-      <hr style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
-
-      <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Muolajalar (Xizmatlar)</h3>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {!initialData?.id && (
+        <>
+          <hr style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+    
+          <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Muolajalar (Xizmatlar)</h3>
+    
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
          {Object.entries(
            services.reduce((acc, s) => {
              const cat = s.category || 'Boshqa'
@@ -531,13 +556,15 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
            </div>
          )}
       </div>
+        </>
+      )}
 
       <hr style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
 
       <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Qabul ma'lumotlari</h3>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <label style={{ fontSize: '13px', fontWeight: '500' }}>Shifokor *</label>
+        <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Shifokor *</label>
         <select
           name="dentist_id"
           required
@@ -617,28 +644,11 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-        <button 
-          type="button" 
-          onClick={onCancel}
-          style={{ padding: '10px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: 'pointer', backgroundColor: 'transparent' }}
-        >
+        <button type="button" onClick={onCancel} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', fontWeight: '500', color: 'var(--text-secondary)' }}>
           Bekor qilish
         </button>
-        <button 
-          type="submit"
-          disabled={loading || (!isNewPatient && !formData.patient_id)}
-          style={{
-            padding: '10px 24px',
-            backgroundColor: 'var(--accent)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 'var(--radius-sm)',
-            fontWeight: '600',
-            opacity: loading || (!isNewPatient && !formData.patient_id) ? 0.7 : 1,
-            cursor: loading || (!isNewPatient && !formData.patient_id) ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {loading ? 'Saqlanmoqda...' : 'Qabulga yozish'}
+        <button type="submit" disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: 'none', backgroundColor: 'var(--accent)', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: '500', opacity: loading ? 0.7 : 1 }}>
+          {loading ? 'Saqlanmoqda...' : (initialData?.id ? 'O\'zgarishlarni saqlash' : 'Qabulga yozish')}
         </button>
       </div>
     </form>

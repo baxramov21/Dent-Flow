@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import { Clock, User, Phone, Play, CheckCircle, CreditCard, XCircle, ArrowRight } from 'lucide-react'
+import { Clock, User, Phone, Play, CheckCircle, CreditCard, XCircle, ArrowRight, Edit } from 'lucide-react'
 import Link from 'next/link'
+import AppointmentForm from '@/components/AppointmentForm'
 
 export default function QueuePage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -14,6 +15,7 @@ export default function QueuePage() {
   const [loading, setLoading] = useState(true)
   const [dentists, setDentists] = useState([])
   const [selectedDentist, setSelectedDentist] = useState('all')
+  const [editingAppointment, setEditingAppointment] = useState(null)
 
   const fetchQueue = async () => {
     if (!clinic) return
@@ -297,6 +299,9 @@ export default function QueuePage() {
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button onClick={() => setEditingAppointment(apt)} title="Tahrirlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F3F4F6', color: '#4B5563', border: 'none', cursor: 'pointer' }}>
+                          <Edit size={18} />
+                        </button>
                         {apt.status === 'scheduled' && (
                           <button onClick={() => updateStatus(apt.id, 'arrived')} title="Keldi" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#DBEAFE', color: '#1E40AF', border: 'none', cursor: 'pointer' }}>
                             <ArrowRight size={18} />
@@ -331,6 +336,19 @@ export default function QueuePage() {
           </tbody>
         </table>
       </div>
+
+      {editingAppointment && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'var(--bg-card)' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px' }}>Qabulni tahrirlash</h2>
+            <AppointmentForm 
+              initialData={editingAppointment}
+              onSuccess={() => { setEditingAppointment(null); fetchQueue(); }} 
+              onCancel={() => setEditingAppointment(null)} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
