@@ -23,6 +23,15 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
 
     async function loadItems() {
       try {
+        const { data: servicesData } = await supabase
+          .from('services')
+          .select('id, name, price, category')
+          .eq('clinic_id', appointment.clinic_id)
+          .eq('is_active', true)
+          .order('name')
+          
+        setClinicServices(servicesData || [])
+
         if (!appointment.treatment_plan_id) {
           setItems([])
           setFetching(false)
@@ -37,15 +46,6 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
 
         if (error) throw error
         
-        const { data: servicesData } = await supabase
-          .from('services')
-          .select('id, name, price, category')
-          .eq('clinic_id', appointment.clinic_id)
-          .eq('is_active', true)
-          .order('name')
-          
-        setClinicServices(servicesData || [])
-
         const mapped = (data || []).map(item => ({
           ...item,
           selected: item.status !== 'completed',
@@ -135,6 +135,31 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     try {
       const selectedItems = items.filter(i => i.selected)
       
+      let currentPlanId = appointment.treatment_plan_id
+      
+      // If no treatment plan exists and we have items, create one
+      if (!currentPlanId && selectedItems.length > 0) {
+        const { data: newPlan, error: pErr } = await supabase
+          .from('treatment_plans')
+          .insert([{
+            clinic_id: appointment.clinic_id,
+            patient_id: appointment.patient_id,
+            dentist_id: appointment.dentist_id,
+            title: 'Tezkor qabul rejasi',
+            status: 'active'
+          }])
+          .select('id').single()
+          
+        if (pErr) throw pErr
+        currentPlanId = newPlan.id
+        
+        // Link to appointment immediately
+        await supabase
+          .from('appointments')
+          .update({ treatment_plan_id: currentPlanId })
+          .eq('id', appointment.id)
+      }
+      
       // 1. Update treatment items
       if (selectedItems.length > 0) {
         for (const item of selectedItems) {
@@ -142,7 +167,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
             await supabase
               .from('treatment_items')
               .insert({
-                treatment_plan_id: appointment.treatment_plan_id,
+                treatment_plan_id: currentPlanId,
                 service_id: item.service_id,
                 status: 'completed',
                 price_override: item.finalPrice,
@@ -186,10 +211,11 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
           .insert([{
             clinic_id: appointment.clinic_id,
             patient_id: appointment.patient_id,
-            treatment_plan_id: appointment.treatment_plan_id,
+            treatment_plan_id: currentPlanId,
             appointment_id: appointment.id,
             amount: paidVal,
-            payment_method: paymentMethod
+            payment_method: paymentMethod,
+            notes: 'Avtomatik to\'lov (Qabul yakunlanganda)'
           }])
         if (paymentError) throw paymentError
       }
