@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { X, DollarSign, CheckCircle } from 'lucide-react'
 
-export default function CheckoutModal({ appointment, onClose, onSuccess }) {
+export default function CheckoutView({ appointment, onSuccess }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState([])
@@ -145,14 +145,7 @@ export default function CheckoutModal({ appointment, onClose, onSuccess }) {
   }
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div className="card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', backgroundColor: 'var(--bg-card)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold' }}>To'lov Oynasi (Checkout)</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <X size={20} color="var(--text-secondary)" />
-          </button>
-        </div>
+    <div style={{ width: '100%', padding: '16px', backgroundColor: 'var(--bg-card)' }}>
 
         {fetching ? (
           <div style={{ padding: '20px', textAlign: 'center' }}>Yuklanmoqda...</div>
@@ -253,6 +246,5 @@ export default function CheckoutModal({ appointment, onClose, onSuccess }) {
           </form>
         )}
       </div>
-    </div>
   )
 }

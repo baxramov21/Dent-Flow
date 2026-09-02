@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import { Plus, Clock, Calendar as CalendarIcon, User as UserIcon, Phone, ChevronLeft, ChevronRight, User, Play, CheckCircle, CreditCard, XCircle, Edit } from 'lucide-react'
 import AppointmentForm from '@/components/AppointmentForm'
-import CheckoutModal from '@/components/CheckoutModal'
+import AppointmentManagerModal from '@/components/AppointmentManagerModal'
 
 export default function AppointmentsPage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -14,8 +14,7 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingAppointment, setEditingAppointment] = useState(null)
-  const [checkoutAppointment, setCheckoutAppointment] = useState(null)
+  const [managingAppointment, setManagingAppointment] = useState(null)
   const [dentists, setDentists] = useState([])
   
   // Calendar States
@@ -256,7 +255,7 @@ export default function AppointmentsPage() {
 
                       {/* Quick Action Buttons */}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', marginTop: 'auto', paddingTop: '4px', borderTop: '1px solid var(--border)' }}>
-                        <button onClick={() => setEditingAppointment(apt)} title="Tahrirlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => setManagingAppointment(apt)} title="Boshqarish" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={14} />
                         </button>
                         {apt.status === 'scheduled' && (
@@ -265,7 +264,7 @@ export default function AppointmentsPage() {
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <button onClick={() => setManagingAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <CreditCard size={14} />
                           </button>
                         )}
@@ -354,7 +353,7 @@ export default function AppointmentsPage() {
                       
                       {/* Quick Action Buttons for Week View */}
                       <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '4px', marginTop: '2px', paddingTop: '4px', borderTop: '1px solid var(--border)' }}>
-                        <button onClick={() => setEditingAppointment(apt)} title="Tahrirlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => setManagingAppointment(apt)} title="Boshqarish" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={12} />
                         </button>
                         {apt.status === 'scheduled' && (
@@ -363,7 +362,7 @@ export default function AppointmentsPage() {
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <button onClick={() => setManagingAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <CreditCard size={12} />
                           </button>
                         )}
@@ -509,27 +508,11 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {editingAppointment && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
-        }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px' }}>Qabulni tahrirlash</h2>
-            <AppointmentForm 
-              initialData={editingAppointment}
-              onSuccess={() => { setEditingAppointment(null); fetchAppointments(); }} 
-              onCancel={() => setEditingAppointment(null)} 
-            />
-          </div>
-        </div>
-      )}
-
-      {checkoutAppointment && (
-        <CheckoutModal 
-          appointment={checkoutAppointment} 
-          onClose={() => setCheckoutAppointment(null)} 
-          onSuccess={() => { setCheckoutAppointment(null); fetchAppointments(); }} 
+      {managingAppointment && (
+        <AppointmentManagerModal 
+          appointment={managingAppointment}
+          onClose={() => setManagingAppointment(null)}
+          onSuccess={() => { setManagingAppointment(null); fetchAppointments(); }}
         />
       )}
     </div>

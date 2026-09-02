@@ -6,7 +6,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { Clock, User, Phone, Play, CheckCircle, CreditCard, XCircle, ArrowRight, Edit } from 'lucide-react'
 import Link from 'next/link'
 import AppointmentForm from '@/components/AppointmentForm'
-import CheckoutModal from '@/components/CheckoutModal'
+import AppointmentManagerModal from '@/components/AppointmentManagerModal'
 
 export default function QueuePage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -17,7 +17,7 @@ export default function QueuePage() {
   const [dentists, setDentists] = useState([])
   const [selectedDentist, setSelectedDentist] = useState('all')
   const [editingAppointment, setEditingAppointment] = useState(null)
-  const [checkoutAppointment, setCheckoutAppointment] = useState(null)
+  const [managingAppointment, setManagingAppointment] = useState(null)
 
   const fetchQueue = async () => {
     if (!clinic) return
@@ -319,7 +319,7 @@ export default function QueuePage() {
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button onClick={() => setEditingAppointment(apt)} title="Tahrirlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => setManagingAppointment(apt)} title="Boshqarish" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={18} />
                         </button>
                         {apt.status === 'scheduled' && (
@@ -328,7 +328,7 @@ export default function QueuePage() {
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <button onClick={() => setManagingAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <CreditCard size={18} />
                           </button>
                         )}
@@ -347,24 +347,11 @@ export default function QueuePage() {
         </table>
       </div>
 
-      {editingAppointment && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'var(--bg-card)' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px' }}>Qabulni tahrirlash</h2>
-            <AppointmentForm 
-              initialData={editingAppointment}
-              onSuccess={() => { setEditingAppointment(null); fetchQueue(); }} 
-              onCancel={() => setEditingAppointment(null)} 
-            />
-          </div>
-        </div>
-      )}
-
-      {checkoutAppointment && (
-        <CheckoutModal 
-          appointment={checkoutAppointment} 
-          onClose={() => setCheckoutAppointment(null)} 
-          onSuccess={() => { setCheckoutAppointment(null); fetchQueue(); }} 
+      {managingAppointment && (
+        <AppointmentManagerModal 
+          appointment={managingAppointment}
+          onClose={() => setManagingAppointment(null)}
+          onSuccess={() => { setManagingAppointment(null); fetchQueue(); }}
         />
       )}
     </div>
