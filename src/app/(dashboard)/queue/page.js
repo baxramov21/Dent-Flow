@@ -192,17 +192,37 @@ export default function QueuePage() {
           <p style={{ color: 'var(--text-secondary)' }}>Bugungi barcha bemorlar va ularning joriy holati</p>
         </div>
         
-        <div>
-          <select 
-            value={selectedDentist}
-            onChange={(e) => setSelectedDentist(e.target.value)}
-            style={{ padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }}
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px', maxWidth: '450px', scrollbarWidth: 'none' }}>
+          <button
+            onClick={() => setSelectedDentist('all')}
+            style={{
+              padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
+              backgroundColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--bg-card)',
+              color: selectedDentist === 'all' ? 'white' : 'var(--text-secondary)',
+              borderColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--border)'
+            }}
           >
-            <option value="all">Barcha shifokorlar</option>
-            {dentists.map(d => (
-              <option key={d.id} value={d.id}>{d.full_name}</option>
-            ))}
-          </select>
+            Barchasi
+          </button>
+          {dentists.map(d => (
+            <button
+              key={d.id}
+              onClick={() => setSelectedDentist(d.id)}
+              style={{
+                padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
+                backgroundColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--bg-card)',
+                color: selectedDentist === d.id ? 'white' : 'var(--text-secondary)',
+                borderColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--border)'
+              }}
+            >
+              {d.full_name}
+            </button>
+          ))}
+          <style jsx>{`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
         </div>
       </div>
 
