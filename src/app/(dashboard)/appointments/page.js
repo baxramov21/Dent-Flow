@@ -360,62 +360,29 @@ export default function AppointmentsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="card" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="card" style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={() => navigateDate(-1)} style={{ padding: '8px', backgroundColor: 'var(--bg-hover)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
-              <ChevronLeft size={20} />
-            </button>
-            <button onClick={() => setCurrentDate(new Date())} style={{ padding: '8px 16px', backgroundColor: 'var(--bg-hover)', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: 'pointer' }}>
-              Bugun
-            </button>
-            <button onClick={() => navigateDate(1)} style={{ padding: '8px', backgroundColor: 'var(--bg-hover)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
-              <ChevronRight size={20} />
-            </button>
-          </div>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', minWidth: '150px' }}>
-            {viewMode === 'day' 
-              ? currentDate.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })
-              : `${getWeekDays()[0].toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })} - ${getWeekDays()[6].toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' })}`
-            }
-          </h2>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px', maxWidth: '450px', scrollbarWidth: 'none' }}>
-            <button
-              onClick={() => setSelectedDentist('all')}
-              style={{
-                padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
-                backgroundColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--bg-card)',
-                color: selectedDentist === 'all' ? 'white' : 'var(--text-secondary)',
-                borderColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--border)'
-              }}
-            >
-              Barchasi
-            </button>
-            {dentists.map(d => (
-              <button
-                key={d.id}
-                onClick={() => setSelectedDentist(d.id)}
-                style={{
-                  padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
-                  backgroundColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--bg-card)',
-                  color: selectedDentist === d.id ? 'white' : 'var(--text-secondary)',
-                  borderColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--border)'
-                }}
-              >
-                {d.full_name}
+        {/* Top Row: Date & View Controls */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button onClick={() => navigateDate(-1)} style={{ padding: '8px', backgroundColor: 'var(--bg-hover)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+                <ChevronLeft size={20} />
               </button>
-            ))}
+              <button onClick={() => setCurrentDate(new Date())} style={{ padding: '8px 16px', backgroundColor: 'var(--bg-hover)', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: 'pointer' }}>
+                Bugun
+              </button>
+              <button onClick={() => navigateDate(1)} style={{ padding: '8px', backgroundColor: 'var(--bg-hover)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+                <ChevronRight size={20} />
+              </button>
+            </div>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', minWidth: '150px' }}>
+              {viewMode === 'day' 
+                ? currentDate.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })
+                : `${getWeekDays()[0].toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })} - ${getWeekDays()[6].toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' })}`
+              }
+            </h2>
           </div>
-
-          <style jsx>{`
-            div::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
 
           <div style={{ display: 'flex', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '4px' }}>
             <button 
@@ -439,6 +406,40 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
+        {/* Bottom Row: Doctor Tabs */}
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', width: '100%', scrollbarWidth: 'none' }}>
+          <button
+            onClick={() => setSelectedDentist('all')}
+            style={{
+              padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
+              backgroundColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--bg-card)',
+              color: selectedDentist === 'all' ? 'white' : 'var(--text-secondary)',
+              borderColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--border)'
+            }}
+          >
+            Barchasi
+          </button>
+          {dentists.map(d => (
+            <button
+              key={d.id}
+              onClick={() => setSelectedDentist(d.id)}
+              style={{
+                padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
+                backgroundColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--bg-card)',
+                color: selectedDentist === d.id ? 'white' : 'var(--text-secondary)',
+                borderColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--border)'
+              }}
+            >
+              {d.full_name}
+            </button>
+          ))}
+        </div>
+
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
       </div>
 
       {loading ? (

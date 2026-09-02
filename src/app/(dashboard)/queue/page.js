@@ -184,46 +184,46 @@ export default function QueuePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Clock color="var(--accent)" /> Bugungi navbat (Real-vaqt)
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>Bugungi barcha bemorlar va ularning joriy holati</p>
         </div>
+      </div>
         
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px', maxWidth: '450px', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', width: '100%', scrollbarWidth: 'none' }}>
+        <button
+          onClick={() => setSelectedDentist('all')}
+          style={{
+            padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
+            backgroundColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--bg-card)',
+            color: selectedDentist === 'all' ? 'white' : 'var(--text-secondary)',
+            borderColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--border)'
+          }}
+        >
+          Barchasi
+        </button>
+        {dentists.map(d => (
           <button
-            onClick={() => setSelectedDentist('all')}
+            key={d.id}
+            onClick={() => setSelectedDentist(d.id)}
             style={{
               padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
-              backgroundColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--bg-card)',
-              color: selectedDentist === 'all' ? 'white' : 'var(--text-secondary)',
-              borderColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--border)'
+              backgroundColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--bg-card)',
+              color: selectedDentist === d.id ? 'white' : 'var(--text-secondary)',
+              borderColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--border)'
             }}
           >
-            Barchasi
+            {d.full_name}
           </button>
-          {dentists.map(d => (
-            <button
-              key={d.id}
-              onClick={() => setSelectedDentist(d.id)}
-              style={{
-                padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
-                backgroundColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--bg-card)',
-                color: selectedDentist === d.id ? 'white' : 'var(--text-secondary)',
-                borderColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--border)'
-              }}
-            >
-              {d.full_name}
-            </button>
-          ))}
-          <style jsx>{`
-            div::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
-        </div>
+        ))}
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
