@@ -125,6 +125,16 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     .filter(i => i.selected)
     .reduce((sum, i) => sum + (Number(i.finalPrice) || 0), 0)
 
+  // Automatically pre-fill "Bugun to'landi" with the full total cost
+  // If the user wants to log a partial payment, they can edit the input before clicking finish.
+  useEffect(() => {
+    if (totalCost > 0) {
+      setAmountPaid(totalCost.toString())
+    } else {
+      setAmountPaid('')
+    }
+  }, [totalCost])
+
   const paidVal = Number(amountPaid) || 0
   const remainingBalance = Math.max(0, totalCost - paidVal)
 
