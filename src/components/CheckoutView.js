@@ -196,9 +196,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
       const { error: apptError } = await supabase
         .from('appointments')
         .update({
-          status: 'completed',
-          payment_status: paymentStatus,
-          total_cost: totalCost
+          status: 'completed'
         })
         .eq('id', appointment.id)
 
