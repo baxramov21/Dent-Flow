@@ -167,6 +167,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
             await supabase
               .from('treatment_items')
               .insert({
+                clinic_id: appointment.clinic_id,
                 treatment_plan_id: currentPlanId,
                 service_id: item.service_id,
                 status: 'completed',
@@ -210,7 +211,6 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
             clinic_id: appointment.clinic_id,
             patient_id: appointment.patient_id,
             treatment_plan_id: currentPlanId,
-            appointment_id: appointment.id,
             amount: paidVal,
             payment_method: paymentMethod,
             notes: 'Avtomatik to\'lov (Qabul yakunlanganda)'
