@@ -517,7 +517,6 @@ export default function AppointmentForm({ onSuccess, onCancel }) {
            </div>
          ))}
          {services.length === 0 && <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Klinikada xizmatlar topilmadi. Qo'shing.</span>}
-      </div>
          
          {!isAddingService ? (
            <button type="button" onClick={() => setIsAddingService(true)} style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '13px', color: 'var(--accent)', backgroundColor: 'transparent', border: '1px dashed var(--accent)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: '500' }}>
