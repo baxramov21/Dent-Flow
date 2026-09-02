@@ -6,6 +6,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { Clock, User, Phone, Play, CheckCircle, CreditCard, XCircle, ArrowRight, Edit } from 'lucide-react'
 import Link from 'next/link'
 import AppointmentForm from '@/components/AppointmentForm'
+import CheckoutModal from '@/components/CheckoutModal'
 
 export default function QueuePage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -16,6 +17,7 @@ export default function QueuePage() {
   const [dentists, setDentists] = useState([])
   const [selectedDentist, setSelectedDentist] = useState('all')
   const [editingAppointment, setEditingAppointment] = useState(null)
+  const [checkoutAppointment, setCheckoutAppointment] = useState(null)
 
   const fetchQueue = async () => {
     if (!clinic) return
@@ -182,6 +184,15 @@ export default function QueuePage() {
     }
   }
 
+  const getPaymentBadge = (status) => {
+    switch (status) {
+      case 'paid': return { label: 'To\'landi', bg: '#D1FAE5', color: '#065F46' }
+      case 'partially_paid': return { label: 'Qisman to\'landi', bg: '#FEF3C7', color: '#D97706' }
+      case 'unpaid': return { label: 'Nasiya', bg: '#FEE2E2', color: '#991B1B' }
+      default: return null
+    }
+  }
+
   if (clinicLoading) return <div>Yuklanmoqda...</div>
 
   return (
@@ -266,6 +277,7 @@ export default function QueuePage() {
             ) : (
               filteredAppointments.map((apt) => {
                 const badge = getStatusBadge(apt.status)
+                const payBadge = getPaymentBadge(apt.payment_status)
                 return (
                   <tr key={apt.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', backgroundColor: apt.status === 'in_chair' ? '#FFFBEB' : 'transparent' }}>
                     <td style={{ padding: '16px 24px', fontWeight: '600', fontSize: '15px' }}>
@@ -290,12 +302,22 @@ export default function QueuePage() {
                       {apt.staff?.full_name}
                     </td>
                     <td style={{ padding: '16px 24px' }}>
-                      <span style={{ 
-                        padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '600',
-                        backgroundColor: badge.bg, color: badge.color
-                      }}>
-                        {badge.label}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                        <span style={{ 
+                          padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '600',
+                          backgroundColor: badge.bg, color: badge.color
+                        }}>
+                          {badge.label}
+                        </span>
+                        {payBadge && (
+                          <span style={{ 
+                            padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+                            backgroundColor: payBadge.bg, color: payBadge.color
+                          }}>
+                            {payBadge.label}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
@@ -313,12 +335,12 @@ export default function QueuePage() {
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => updateStatus(apt.id, 'billing')} title="To'lovga yuborish" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#E0E7FF', color: '#4338CA', border: 'none', cursor: 'pointer' }}>
+                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#E0E7FF', color: '#4338CA', border: 'none', cursor: 'pointer' }}>
                             <CreditCard size={18} />
                           </button>
                         )}
                         {apt.status === 'billing' && (
-                          <button onClick={() => updateStatus(apt.id, 'completed')} title="Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#D1FAE5', color: '#065F46', border: 'none', cursor: 'pointer' }}>
+                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#D1FAE5', color: '#065F46', border: 'none', cursor: 'pointer' }}>
                             <CheckCircle size={18} />
                           </button>
                         )}
@@ -348,6 +370,14 @@ export default function QueuePage() {
             />
           </div>
         </div>
+      )}
+
+      {checkoutAppointment && (
+        <CheckoutModal 
+          appointment={checkoutAppointment} 
+          onClose={() => setCheckoutAppointment(null)} 
+          onSuccess={() => { setCheckoutAppointment(null); fetchQueue(); }} 
+        />
       )}
     </div>
   )
