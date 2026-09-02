@@ -186,7 +186,7 @@ export default function AppointmentsPage() {
             await supabase.from('payments')
               .delete()
               .eq('patient_id', patientId)
-              .like('notes', "Avtomatik to'lov%")
+              .or(`notes.like.Avtomatik to'lov%,notes.eq.Qarz to'lovi`)
               .gte('paid_at', yesterday)
 
             await supabase.from('medical_history')
