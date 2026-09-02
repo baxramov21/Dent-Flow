@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, User, Phone, MapPin, Calendar, CreditCard } from 'lucide-react'
+import { ArrowLeft, User, Phone, MapPin, Calendar, CreditCard, Activity, Plus } from 'lucide-react'
 import AppointmentForm from '@/components/AppointmentForm'
 import CheckoutView from '@/components/CheckoutView'
 import Link from 'next/link'
@@ -13,8 +13,14 @@ export default function AppointmentManagerPage({ params }) {
   const supabase = createClient()
   const { id } = use(params) // Next.js 15 recommendation for params
   const [appointment, setAppointment] = useState(null)
+  const [medicalHistory, setMedicalHistory] = useState([])
+  
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('details') // 'details' | 'checkout'
+  
+  const [newDiagnosis, setNewDiagnosis] = useState('')
+  const [newDiagStatus, setNewDiagStatus] = useState('active')
+  const [addingDiag, setAddingDiag] = useState(false)
 
   const fetchAppointment = async () => {
     try {
@@ -23,7 +29,7 @@ export default function AppointmentManagerPage({ params }) {
         .from('appointments')
         .select(`
           *,
-          patients (id, full_name, phone, address),
+          patients (id, full_name, phone, address, notes),
           staff:dentist_id (id, full_name)
         `)
         .eq('id', id)
@@ -31,6 +37,17 @@ export default function AppointmentManagerPage({ params }) {
 
       if (error) throw error
       setAppointment(data)
+
+      if (data && data.patients) {
+        const { data: mhData } = await supabase
+          .from('medical_history')
+          .select('*')
+          .eq('patient_id', data.patients.id)
+          .order('reported_at', { ascending: false })
+          
+        setMedicalHistory(mhData || [])
+      }
+
     } catch (error) {
       console.error('Error fetching appointment:', error)
       alert('Qabul ma`lumotlarini yuklashda xatolik yuz berdi.')
@@ -42,6 +59,31 @@ export default function AppointmentManagerPage({ params }) {
   useEffect(() => {
     fetchAppointment()
   }, [id])
+
+  const handleAddDiagnosis = async (e) => {
+    e.preventDefault()
+    if (!newDiagnosis.trim()) return
+    setAddingDiag(true)
+    try {
+       const { error } = await supabase.from('medical_history').insert({
+          clinic_id: appointment.clinic_id,
+          patient_id: appointment.patients.id,
+          condition: newDiagnosis,
+          details: 'Qabuldan qo\'shilgan tashxis',
+          status: newDiagStatus
+       })
+       if (error) throw error
+       
+       setNewDiagnosis('')
+       setNewDiagStatus('active')
+       await fetchAppointment()
+    } catch(err) {
+       console.error(err)
+       alert('Tashxis qo\'shishda xatolik yuz berdi.')
+    } finally {
+       setAddingDiag(false)
+    }
+  }
 
   if (loading) {
     return <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Yuklanmoqda...</div>
@@ -72,6 +114,18 @@ export default function AppointmentManagerPage({ params }) {
   }
 
   const badge = getStatusBadge(appointment.status)
+  
+  const getDiagBadge = (status) => {
+    switch (status) {
+      case 'active': return { bg: '#FEF2F2', color: '#B91C1C', label: 'Faol' } // Red
+      case 'operated': return { bg: '#FFF7ED', color: '#C2410C', label: 'Operatsiya qilingan' } // Orange
+      case 'cured': return { bg: '#F0FDF4', color: '#15803D', label: 'Davolangan' } // Green
+      default: return null
+    }
+  }
+
+  const diagnoses = medicalHistory.filter(mh => mh.status)
+  const warnings = medicalHistory.filter(mh => !mh.status)
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -153,22 +207,125 @@ export default function AppointmentManagerPage({ params }) {
         </div>
 
         {/* Tab Content */}
-        <div style={{ flex: 1, backgroundColor: 'var(--bg-page)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)' }}>
+        <div style={{ flex: 1, backgroundColor: 'var(--bg-page)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', padding: '24px' }}>
+          
           {activeTab === 'details' && (
-            <div style={{ padding: '24px', backgroundColor: 'white', margin: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-              <AppointmentForm 
-                initialData={appointment}
-                onSuccess={() => router.back()} 
-                onCancel={() => router.back()} 
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+              
+              {/* Left Column: Form */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Qabulni tahrirlash</h3>
+                  <AppointmentForm 
+                    initialData={appointment}
+                    onSuccess={() => fetchAppointment()} 
+                    onCancel={() => router.back()} 
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Patient Overview */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* Diagnoses Panel */}
+                <div className="card" style={{ backgroundColor: 'white' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={18} />
+                    Joriy Tashxislar
+                  </h3>
+                  
+                  {diagnoses.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                      {diagnoses.map(mh => {
+                        const dBadge = getDiagBadge(mh.status)
+                        return (
+                          <div key={mh.id} style={{ padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                              <span style={{ fontWeight: '500', fontSize: '14px' }}>{mh.condition}</span>
+                              {dBadge && (
+                                <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', backgroundColor: dBadge.bg, color: dBadge.color }}>
+                                  {dBadge.label}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                              Qo'shilgan: {formatDate(mh.reported_at)}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>Tashxislar yo'q.</p>
+                  )}
+
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-secondary)' }}>Yangi tashxis qo'shish</h4>
+                    <form onSubmit={handleAddDiagnosis} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <input 
+                        type="text"
+                        placeholder="Tashxis nomi (Masalan: Karies)"
+                        value={newDiagnosis}
+                        onChange={(e) => setNewDiagnosis(e.target.value)}
+                        style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', width: '100%' }}
+                      />
+                      <select
+                        value={newDiagStatus}
+                        onChange={(e) => setNewDiagStatus(e.target.value)}
+                        style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', width: '100%' }}
+                      >
+                        <option value="active">Faol</option>
+                        <option value="operated">Operatsiya qilingan</option>
+                        <option value="cured">Davolangan</option>
+                      </select>
+                      <button 
+                        type="submit" 
+                        disabled={addingDiag || !newDiagnosis.trim()}
+                        style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: 'none', backgroundColor: 'var(--accent)', color: 'white', fontSize: '13px', fontWeight: '500', cursor: (addingDiag || !newDiagnosis.trim()) ? 'not-allowed' : 'pointer', opacity: (addingDiag || !newDiagnosis.trim()) ? 0.7 : 1 }}
+                      >
+                        {addingDiag ? 'Qo\'shilmoqda...' : 'Qo\'shish'}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Notes Panel */}
+                <div className="card" style={{ backgroundColor: 'white' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Umumiy izohlar</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', whiteSpace: 'pre-wrap' }}>
+                    {appointment.patients?.notes || "Umumiy izohlar yo'q."}
+                  </p>
+                </div>
+
+                {/* Warnings Panel */}
+                <div className="card" style={{ backgroundColor: 'white' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger)' }} />
+                    Ogohlantirishlar
+                  </h3>
+                  {warnings.length > 0 ? (
+                    <ul style={{ paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                      {warnings.slice(0, 3).map(mh => (
+                        <li key={mh.id} style={{ marginBottom: '8px' }}>{mh.condition}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Tibbiy ogohlantirishlar yo'q.</p>
+                  )}
+                </div>
+
+              </div>
             </div>
           )}
+          
           {activeTab === 'checkout' && (
-            <CheckoutView 
-              appointment={appointment}
-              onSuccess={() => router.back()}
-              onClose={() => router.back()}
-            />
+            <div style={{ backgroundColor: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+              <CheckoutView 
+                appointment={appointment}
+                onSuccess={() => router.back()}
+                onClose={() => router.back()}
+              />
+            </div>
           )}
         </div>
       </div>

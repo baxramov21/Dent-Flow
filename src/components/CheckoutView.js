@@ -9,9 +9,10 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState([])
   const [fetching, setFetching] = useState(true)
+  const [clinicServices, setClinicServices] = useState([])
+  const [selectedServiceId, setSelectedServiceId] = useState('')
 
   const [amountPaid, setAmountPaid] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('cash')
 
   useEffect(() => {
     if (!appointment) return
@@ -26,11 +27,20 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
 
         const { data, error } = await supabase
           .from('treatment_items')
-          .select('id, service_id, price_override, status, services(name)')
+          .select('id, service_id, price_override, status, services(name, price)')
           .eq('treatment_plan_id', appointment.treatment_plan_id)
           .in('status', ['planned', 'in_progress', 'completed'])
 
         if (error) throw error
+        
+        const { data: servicesData } = await supabase
+          .from('services')
+          .select('id, name, price')
+          .eq('clinic_id', appointment.clinic_id)
+          .eq('is_active', true)
+          .order('name')
+          
+        setClinicServices(servicesData || [])
 
         const mapped = (data || []).map(item => ({
           ...item,
@@ -57,6 +67,26 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     setItems(items.map(item => item.id === id ? { ...item, finalPrice: Number(newPrice) } : item))
   }
 
+  const handleAddService = () => {
+    if (!selectedServiceId) return
+    const srv = clinicServices.find(s => s.id === selectedServiceId)
+    if (!srv) return
+
+    const newItem = {
+      id: `temp_${Date.now()}`,
+      service_id: srv.id,
+      price_override: srv.price,
+      finalPrice: srv.price,
+      status: 'planned',
+      services: { name: srv.name },
+      selected: true,
+      isNew: true
+    }
+    
+    setItems([...items, newItem])
+    setSelectedServiceId('')
+  }
+
   const totalCost = items
     .filter(i => i.selected)
     .reduce((sum, i) => sum + (Number(i.finalPrice) || 0), 0)
@@ -74,14 +104,26 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
       // 1. Update treatment items
       if (selectedItems.length > 0) {
         for (const item of selectedItems) {
-          await supabase
-            .from('treatment_items')
-            .update({
-              status: 'completed',
-              price_override: item.finalPrice,
-              completed_at: new Date().toISOString()
-            })
-            .eq('id', item.id)
+          if (item.isNew) {
+            await supabase
+              .from('treatment_items')
+              .insert({
+                treatment_plan_id: appointment.treatment_plan_id,
+                service_id: item.service_id,
+                status: 'completed',
+                price_override: item.finalPrice,
+                completed_at: new Date().toISOString()
+              })
+          } else {
+            await supabase
+              .from('treatment_items')
+              .update({
+                status: 'completed',
+                price_override: item.finalPrice,
+                completed_at: new Date().toISOString()
+              })
+              .eq('id', item.id)
+          }
         }
       }
 
@@ -154,9 +196,32 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
             
             {/* Treatment Items Selection */}
             <div>
-              <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px' }}>Bajarilgan xizmatlar</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Bajarilgan xizmatlar</h3>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    value={selectedServiceId}
+                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+                  >
+                    <option value="">+ Xizmat qo'shish</option>
+                    {clinicServices.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.price} so'm)</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddService}
+                    disabled={!selectedServiceId}
+                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: 'var(--radius-sm)', border: 'none', backgroundColor: selectedServiceId ? 'var(--accent)' : 'var(--bg-hover)', color: selectedServiceId ? 'white' : 'var(--text-secondary)', cursor: selectedServiceId ? 'pointer' : 'not-allowed' }}
+                  >
+                    Qo'shish
+                  </button>
+                </div>
+              </div>
+              
               {items.length === 0 ? (
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Ushbu bemorda rejalashtirilgan xizmatlar topilmadi.</p>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Xizmatlar yo'q. Yangi xizmat qo'shing.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {items.map(item => (
