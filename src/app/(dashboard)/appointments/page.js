@@ -91,12 +91,10 @@ export default function AppointmentsPage() {
   }
 
   const STATUS_OPTIONS = [
-    { value: 'scheduled', label: 'Kutmoqda' },
-    { value: 'arrived', label: 'Keldi' },
-    { value: 'in_chair', label: 'Qabulda' },
-    { value: 'billing', label: "To'lovda" },
-    { value: 'completed', label: 'Yakunlandi' },
-    { value: 'cancelled', label: 'Bekor qilindi' }
+    { value: 'scheduled', label: 'Waiting' },
+    { value: 'in_chair', label: 'In the appointment' },
+    { value: 'completed', label: 'Finished' },
+    { value: 'cancelled', label: 'Canceled' }
   ];
 
   const handleStatusChange = async (appointmentId, newStatus) => {
@@ -173,13 +171,11 @@ export default function AppointmentsPage() {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'scheduled': return { bg: '#F3F4F6', text: '#4B5563', label: 'Kutmoqda', border: '#E5E7EB' }
-      case 'arrived': return { bg: '#DBEAFE', text: '#1E40AF', label: 'Keldi', border: '#BFDBFE' }
-      case 'in_chair': return { bg: '#FEF3C7', text: '#D97706', label: 'Qabulda', border: '#FDE68A' }
-      case 'billing': return { label: 'To\'lovda', bg: '#E0E7FF', text: '#4338CA', border: '#C7D2FE' }
-      case 'completed': return { bg: '#D1FAE5', text: '#065F46', label: 'Yakunlandi', border: '#A7F3D0' }
-      case 'cancelled': return { bg: '#FEE2E2', text: '#991B1B', label: 'Bekor qilindi', border: '#FECACA' }
-      default: return { bg: '#F3F4F6', text: '#374151', label: status, border: '#E5E7EB' }
+      case 'scheduled': return { bg: '#EFF6FF', text: '#1E40AF', label: 'Waiting', border: '#BFDBFE' }
+      case 'in_chair': return { bg: '#FFF7ED', text: '#C2410C', label: 'In the appointment', border: '#FFEDD5' }
+      case 'completed': return { bg: '#F0FDF4', text: '#15803D', label: 'Finished', border: '#BBF7D0' }
+      case 'cancelled': return { bg: '#FEF2F2', text: '#B91C1C', label: 'Canceled', border: '#FECACA' }
+      default: return { bg: '#F8FAFC', text: '#475569', label: status, border: '#E2E8F0' }
     }
   }
 
@@ -232,12 +228,15 @@ export default function AppointmentsPage() {
                           value={apt.status}
                           onChange={(e) => handleStatusChange(apt.id, e.target.value)}
                           style={{
-                            fontSize: '11px', fontWeight: '600', color: style.text, backgroundColor: style.bg,
-                            padding: '2px 20px 2px 8px', borderRadius: '12px', border: 'none', appearance: 'none',
-                            cursor: 'pointer', outline: 'none',
+                            fontSize: '12px', fontWeight: '600', color: style.text, backgroundColor: style.bg,
+                            padding: '4px 24px 4px 10px', borderRadius: '16px', border: `1px solid ${style.border}`, appearance: 'none',
+                            cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s',
                             backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23${style.text.replace('#', '')}%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`,
-                            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '8px auto'
+                            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '8px auto'
                           }}
+                          onMouseOver={(e) => e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)'}
+                          onMouseOut={(e) => e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'}
                         >
                           {STATUS_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>

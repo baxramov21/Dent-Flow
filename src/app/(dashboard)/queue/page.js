@@ -166,20 +166,18 @@ export default function QueuePage() {
   const filteredAppointments = appointments.filter(apt => selectedDentist === 'all' || apt.dentist_id === selectedDentist)
   
   const stats = {
-    waiting: filteredAppointments.filter(a => a.status === 'scheduled' || a.status === 'arrived').length,
+    waiting: filteredAppointments.filter(a => a.status === 'scheduled').length,
     inChair: filteredAppointments.filter(a => a.status === 'in_chair').length,
-    completed: filteredAppointments.filter(a => a.status === 'completed' || a.status === 'billing').length,
+    completed: filteredAppointments.filter(a => a.status === 'completed').length,
     total: filteredAppointments.length
   }
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'scheduled': return { label: 'Kutmoqda', bg: '#F3F4F6', color: '#4B5563' }
-      case 'arrived': return { label: 'Keldi', bg: '#DBEAFE', color: '#1E40AF' }
-      case 'in_chair': return { label: 'Qabulda', bg: '#FEF3C7', color: '#D97706' }
-      case 'billing': return { label: 'To\'lovda', bg: '#E0E7FF', color: '#4338CA' }
-      case 'completed': return { label: 'Yakunlandi', bg: '#D1FAE5', color: '#065F46' }
-      case 'cancelled': return { label: 'Bekor qilindi', bg: '#FEE2E2', color: '#991B1B' }
+      case 'scheduled': return { bg: '#EFF6FF', color: '#1E40AF', label: 'Waiting' }
+      case 'in_chair': return { bg: '#FFF7ED', color: '#C2410C', label: 'In the appointment' }
+      case 'completed': return { bg: '#F0FDF4', color: '#15803D', label: 'Finished' }
+      case 'cancelled': return { bg: '#FEF2F2', color: '#B91C1C', label: 'Canceled' }
       default: return { label: status, bg: '#F3F4F6', color: '#4B5563' }
     }
   }
@@ -321,31 +319,21 @@ export default function QueuePage() {
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button onClick={() => setEditingAppointment(apt)} title="Tahrirlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F3F4F6', color: '#4B5563', border: 'none', cursor: 'pointer' }}>
+                        <button onClick={() => setEditingAppointment(apt)} title="Tahrirlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={18} />
                         </button>
                         {apt.status === 'scheduled' && (
-                          <button onClick={() => updateStatus(apt.id, 'arrived')} title="Keldi" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#DBEAFE', color: '#1E40AF', border: 'none', cursor: 'pointer' }}>
-                            <ArrowRight size={18} />
-                          </button>
-                        )}
-                        {(apt.status === 'scheduled' || apt.status === 'arrived') && (
-                          <button onClick={() => updateStatus(apt.id, 'in_chair')} title="Qabulni boshlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#FEF3C7', color: '#D97706', border: 'none', cursor: 'pointer' }}>
+                          <button onClick={() => updateStatus(apt.id, 'in_chair')} title="Qabulni boshlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#FFF7ED', color: '#C2410C', border: '1px solid #FFEDD5', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <Play size={18} />
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#E0E7FF', color: '#4338CA', border: 'none', cursor: 'pointer' }}>
+                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <CreditCard size={18} />
                           </button>
                         )}
-                        {apt.status === 'billing' && (
-                          <button onClick={() => setCheckoutAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#D1FAE5', color: '#065F46', border: 'none', cursor: 'pointer' }}>
-                            <CheckCircle size={18} />
-                          </button>
-                        )}
-                        {(apt.status === 'scheduled' || apt.status === 'arrived') && (
-                          <button onClick={() => updateStatus(apt.id, 'cancelled')} title="Bekor qilish" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#FEE2E2', color: '#991B1B', border: 'none', cursor: 'pointer' }}>
+                        {(apt.status === 'scheduled' || apt.status === 'in_chair') && (
+                          <button onClick={() => updateStatus(apt.id, 'cancelled')} title="Bekor qilish" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <XCircle size={18} />
                           </button>
                         )}
