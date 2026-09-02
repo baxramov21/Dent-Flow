@@ -383,16 +383,39 @@ export default function AppointmentsPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <select 
-            value={selectedDentist}
-            onChange={(e) => setSelectedDentist(e.target.value)}
-            style={{ padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }}
-          >
-            <option value="all">Barcha shifokorlar</option>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px', maxWidth: '450px', scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => setSelectedDentist('all')}
+              style={{
+                padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
+                backgroundColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--bg-card)',
+                color: selectedDentist === 'all' ? 'white' : 'var(--text-secondary)',
+                borderColor: selectedDentist === 'all' ? 'var(--accent)' : 'var(--border)'
+              }}
+            >
+              Barchasi
+            </button>
             {dentists.map(d => (
-              <option key={d.id} value={d.id}>{d.full_name}</option>
+              <button
+                key={d.id}
+                onClick={() => setSelectedDentist(d.id)}
+                style={{
+                  padding: '8px 16px', borderRadius: '20px', border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s',
+                  backgroundColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--bg-card)',
+                  color: selectedDentist === d.id ? 'white' : 'var(--text-secondary)',
+                  borderColor: selectedDentist === d.id ? 'var(--accent)' : 'var(--border)'
+                }}
+              >
+                {d.full_name}
+              </button>
             ))}
-          </select>
+          </div>
+
+          <style jsx>{`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
 
           <div style={{ display: 'flex', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '4px' }}>
             <button 
