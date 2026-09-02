@@ -228,22 +228,6 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
         if (paymentError) throw paymentError
       }
 
-      // 5. Update Patient Debt
-      if (remainingBalance > 0) {
-        const { data: patient, error: pError } = await supabase
-          .from('patients')
-          .select('total_debt')
-          .eq('id', appointment.patient_id)
-          .single()
-        
-        if (!pError) {
-          const currentDebt = patient.total_debt || 0
-          await supabase
-            .from('patients')
-            .update({ total_debt: currentDebt + remainingBalance })
-            .eq('id', appointment.patient_id)
-        }
-      }
 
       onSuccess()
     } catch (err) {

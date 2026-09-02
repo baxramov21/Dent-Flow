@@ -9,7 +9,7 @@ export default function HistoryPage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
   const supabase = createClient()
 
-  const [activeTab, setActiveTab] = useState('procedures') // 'procedures' | 'payments'
+  const [activeTab, setActiveTab] = useState('procedures') // 'procedures' | 'payments' | 'debts'
   const [loading, setLoading] = useState(true)
   
   // Data
@@ -90,10 +90,52 @@ export default function HistoryPage() {
     return patientName.includes(q) || planName.includes(q)
   })
 
+  // Calculate Debts
+  const patientDebts = {}
+  
+  procedures.forEach(p => {
+    const patientId = p.treatment_plans?.patients?.id
+    if (!patientId) return
+    if (!patientDebts[patientId]) {
+      patientDebts[patientId] = {
+        patient: p.treatment_plans.patients,
+        totalBilled: 0,
+        totalPaid: 0,
+        debt: 0
+      }
+    }
+    patientDebts[patientId].totalBilled += (p.price_override || 0)
+  })
+
+  payments.forEach(p => {
+    const patientId = p.patients?.id
+    if (!patientId) return
+    if (!patientDebts[patientId]) {
+      patientDebts[patientId] = {
+        patient: p.patients,
+        totalBilled: 0,
+        totalPaid: 0,
+        debt: 0
+      }
+    }
+    patientDebts[patientId].totalPaid += (p.amount || 0)
+  })
+
+  const debtors = Object.values(patientDebts)
+    .map(d => ({ ...d, debt: d.totalBilled - d.totalPaid }))
+    .filter(d => d.debt > 0)
+    .sort((a, b) => b.debt - a.debt)
+
+  const filteredDebtors = debtors.filter(d => {
+    const q = searchQuery.toLowerCase()
+    return d.patient?.full_name?.toLowerCase().includes(q) || d.patient?.phone?.includes(q)
+  })
+
   // KPIs
   const totalRevenue = payments.reduce((acc, p) => acc + p.amount, 0)
   const totalProcedures = procedures.length
   const avgCheck = totalProcedures > 0 ? (totalRevenue / totalProcedures) : 0
+  const totalDebt = debtors.reduce((acc, d) => acc + d.debt, 0)
 
   if (clinicLoading) return <div>Yuklanmoqda...</div>
 
@@ -129,11 +171,22 @@ export default function HistoryPage() {
             <CreditCard size={18} />
             To'lovlar
           </button>
+          <button 
+            onClick={() => setActiveTab('debts')}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
+              backgroundColor: activeTab === 'debts' ? 'var(--bg-hover)' : 'transparent',
+              color: activeTab === 'debts' ? '#EF4444' : 'var(--text-secondary)'
+            }}
+          >
+            <User size={18} />
+            Qarzdorlik
+          </button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
         <div className="card" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami muolajalar</h3>
           <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>{totalProcedures}</p>
@@ -145,6 +198,10 @@ export default function HistoryPage() {
         <div className="card" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>O'rtacha chek</h3>
           <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#3B82F6' }}>{Math.round(avgCheck).toLocaleString()} UZS</p>
+        </div>
+        <div className="card" style={{ padding: '20px', borderLeft: '4px solid #EF4444' }}>
+          <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami Qarzdorlik</h3>
+          <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#EF4444' }}>{totalDebt.toLocaleString()} UZS</p>
         </div>
       </div>
 
@@ -269,6 +326,47 @@ export default function HistoryPage() {
                     </td>
                     <td style={{ padding: '16px 24px', fontWeight: '600', color: '#10B981' }}>
                       +{p.amount?.toLocaleString()} UZS
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {/* Debts Table */}
+        {activeTab === 'debts' && (
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontSize: '13px', textTransform: 'uppercase' }}>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Bemor</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Jami hisoblangan</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>To'langan</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Qolgan Qarz</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
+              ) : filteredDebtors.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Qarzdor bemorlar yo'q</td></tr>
+              ) : (
+                filteredDebtors.map(d => (
+                  <tr key={d.patient.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '16px 24px', fontWeight: '500' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span>{d.patient.full_name}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{d.patient.phone}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
+                      {d.totalBilled.toLocaleString()} UZS
+                    </td>
+                    <td style={{ padding: '16px 24px', color: '#10B981', fontWeight: '500' }}>
+                      {d.totalPaid.toLocaleString()} UZS
+                    </td>
+                    <td style={{ padding: '16px 24px', fontWeight: 'bold', color: '#EF4444' }}>
+                      {d.debt.toLocaleString()} UZS
                     </td>
                   </tr>
                 ))
