@@ -93,10 +93,10 @@ export default function AppointmentsPage() {
   }
 
   const STATUS_OPTIONS = [
-    { value: 'scheduled', label: 'Waiting' },
-    { value: 'in_chair', label: 'In the appointment' },
-    { value: 'completed', label: 'Finished' },
-    { value: 'cancelled', label: 'Canceled' }
+    { value: 'scheduled', label: 'Kutmoqda' },
+    { value: 'in_chair', label: 'Qabulda' },
+    { value: 'completed', label: 'Yakunlandi' },
+    { value: 'cancelled', label: 'Bekor qilindi' }
   ];
 
   const handleStatusChange = async (appointmentId, newStatus) => {
@@ -173,10 +173,10 @@ export default function AppointmentsPage() {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'scheduled': return { bg: '#EFF6FF', text: '#1E40AF', label: 'Waiting', border: '#BFDBFE' }
-      case 'in_chair': return { bg: '#FFF7ED', text: '#C2410C', label: 'In the appointment', border: '#FFEDD5' }
-      case 'completed': return { bg: '#F0FDF4', text: '#15803D', label: 'Finished', border: '#BBF7D0' }
-      case 'cancelled': return { bg: '#FEF2F2', text: '#B91C1C', label: 'Canceled', border: '#FECACA' }
+      case 'scheduled': return { bg: '#EFF6FF', text: '#1E40AF', label: 'Kutmoqda', border: '#BFDBFE' }
+      case 'in_chair': return { bg: '#FFF7ED', text: '#C2410C', label: 'Qabulda', border: '#FFEDD5' }
+      case 'completed': return { bg: '#F0FDF4', text: '#15803D', label: 'Yakunlandi', border: '#BBF7D0' }
+      case 'cancelled': return { bg: '#FEF2F2', text: '#B91C1C', label: 'Bekor qilindi', border: '#FECACA' }
       default: return { bg: '#F8FAFC', text: '#475569', label: status, border: '#E2E8F0' }
     }
   }

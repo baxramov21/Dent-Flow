@@ -174,10 +174,10 @@ export default function QueuePage() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'scheduled': return { bg: '#EFF6FF', color: '#1E40AF', label: 'Waiting' }
-      case 'in_chair': return { bg: '#FFF7ED', color: '#C2410C', label: 'In the appointment' }
-      case 'completed': return { bg: '#F0FDF4', color: '#15803D', label: 'Finished' }
-      case 'cancelled': return { bg: '#FEF2F2', color: '#B91C1C', label: 'Canceled' }
+      case 'scheduled': return { bg: '#EFF6FF', color: '#1E40AF', label: 'Kutmoqda' }
+      case 'in_chair': return { bg: '#FFF7ED', color: '#C2410C', label: 'Qabulda' }
+      case 'completed': return { bg: '#F0FDF4', color: '#15803D', label: 'Yakunlandi' }
+      case 'cancelled': return { bg: '#FEF2F2', color: '#B91C1C', label: 'Bekor qilindi' }
       default: return { label: status, bg: '#F3F4F6', color: '#4B5563' }
     }
   }
