@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { X, DollarSign, CheckCircle } from 'lucide-react'
 
-export default function CheckoutView({ appointment, onSuccess }) {
+export default function CheckoutView({ appointment, onSuccess, onClose }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState([])

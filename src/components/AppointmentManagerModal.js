@@ -109,6 +109,7 @@ export default function AppointmentManagerModal({ appointment, onClose, onSucces
             <CheckoutView 
               appointment={appointment}
               onSuccess={onSuccess}
+              onClose={onClose}
             />
           )}
         </div>
