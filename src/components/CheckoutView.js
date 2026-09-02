@@ -49,7 +49,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
         const mapped = (data || []).map(item => ({
           ...item,
           selected: item.status !== 'completed',
-          finalPrice: item.price_override
+          finalPrice: item.price_override ?? item.services?.price ?? 0
         }))
 
         setItems(mapped)

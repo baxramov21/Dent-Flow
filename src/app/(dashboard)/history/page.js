@@ -274,7 +274,7 @@ export default function HistoryPage() {
                       </div>
                     </td>
                     <td style={{ padding: '16px 24px', fontWeight: '600' }}>
-                      {p.price_override?.toLocaleString()} UZS
+                      {(p.price_override || 0).toLocaleString()} UZS
                     </td>
                   </tr>
                 ))
