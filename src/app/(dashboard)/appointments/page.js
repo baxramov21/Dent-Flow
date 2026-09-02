@@ -163,13 +163,18 @@ export default function AppointmentsPage() {
       }
 
       if (newStatus === 'cancelled') {
-        const appointment = appointments.find(a => a.id === appointmentId)
-        if (appointment) {
-          const patientId = appointment.patients?.id || appointment.patient_id
-          const planId = appointment.treatment_plan_id
+        const { data: dbAppointment } = await supabase
+          .from('appointments')
+          .select('treatment_plan_id, patient_id')
+          .eq('id', appointmentId)
+          .single()
+
+        if (dbAppointment) {
+          const patientId = dbAppointment.patient_id
+          const planId = dbAppointment.treatment_plan_id
+          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
           if (planId) {
-            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
             await supabase.from('treatment_items')
               .update({ status: 'planned', completed_at: null, price_override: null })
               .eq('treatment_plan_id', planId)
@@ -177,15 +182,18 @@ export default function AppointmentsPage() {
               .gte('completed_at', yesterday)
           }
 
-          await supabase.from('payments').delete().eq('appointment_id', appointmentId)
-
           if (patientId) {
-            const yesterdayDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+            await supabase.from('payments')
+              .delete()
+              .eq('patient_id', patientId)
+              .like('notes', "Avtomatik to'lov%")
+              .gte('paid_at', yesterday)
+
             await supabase.from('medical_history')
               .delete()
               .eq('patient_id', patientId)
               .eq('condition', 'Bajarilgan muolajalar')
-              .gte('reported_at', yesterdayDate)
+              .gte('reported_at', yesterday)
           }
         }
       }
