@@ -6,7 +6,17 @@ import { useClinic } from '@/context/ClinicContext'
 import { Plus, User as UserIcon, Mail, Phone, Lock, Filter, Edit } from 'lucide-react'
 import { createStaffMember, updateStaffMember } from '@/app/actions/staff'
 
+import RoleGuard from '@/components/RoleGuard'
+
 export default function StaffPage() {
+  return (
+    <RoleGuard allowed={['admin']}>
+      <StaffPageContent />
+    </RoleGuard>
+  )
+}
+
+function StaffPageContent() {
   const { clinic, isLoading: clinicLoading } = useClinic()
   const supabase = createClient()
 

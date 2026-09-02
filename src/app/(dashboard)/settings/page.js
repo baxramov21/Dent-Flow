@@ -5,7 +5,17 @@ import { Building2, Mail, Phone, MapPin, Globe, Clock, Coffee } from 'lucide-rea
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
+import RoleGuard from '@/components/RoleGuard'
+
 export default function SettingsPage() {
+  return (
+    <RoleGuard allowed={['admin']}>
+      <SettingsPageContent />
+    </RoleGuard>
+  )
+}
+
+function SettingsPageContent() {
   const { clinic, isLoading } = useClinic()
   const supabase = createClient()
   const [isSubmitting, setIsSubmitting] = useState(false)

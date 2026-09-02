@@ -15,6 +15,9 @@ export function ClinicProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [permissions, setPermissions] = useState({})
+
   useEffect(() => {
     async function loadClinicData() {
       try {
@@ -42,8 +45,20 @@ export function ClinicProvider({ children }) {
           return
         }
 
+        const role = staff.role
+        const adminStatus = role === 'admin'
+        
         setStaffProfile(staff)
         setClinic(staff.clinics)
+        setIsAdmin(adminStatus)
+        setPermissions({
+          canViewFinancials: adminStatus,
+          canManageStaff: adminStatus,
+          canManageSettings: adminStatus,
+          canViewAllPatients: role !== 'dentist',
+          canManageServices: adminStatus,
+          canViewAnalytics: adminStatus,
+        })
       } catch (error) {
         console.error('Error loading clinic data:', JSON.stringify(error, null, 2))
       } finally {
@@ -55,7 +70,7 @@ export function ClinicProvider({ children }) {
   }, [])
 
   return (
-    <ClinicContext.Provider value={{ clinic, staffProfile, isLoading }}>
+    <ClinicContext.Provider value={{ clinic, staffProfile, isLoading, isAdmin, permissions }}>
       {children}
     </ClinicContext.Provider>
   )

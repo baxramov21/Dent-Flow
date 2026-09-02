@@ -2,9 +2,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Users, Calendar, ClipboardList, BriefcaseMedical, Settings, Clock, History, Sparkles } from 'lucide-react'
+import { useClinic } from '@/context/ClinicContext'
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { permissions } = useClinic()
 
   const mainLinks = [
     { href: '/appointments', label: 'Kalendar', icon: Calendar },
@@ -14,13 +16,13 @@ export default function Sidebar() {
   ]
 
   const managementLinks = [
-    { href: '/services', label: 'Xizmatlar', icon: BriefcaseMedical },
+    ...(permissions?.canManageServices ? [{ href: '/services', label: 'Xizmatlar', icon: BriefcaseMedical }] : []),
     { href: '/history', label: 'Tarix', icon: History },
-    { href: '/staff', label: 'Xodimlar', icon: ClipboardList },
+    ...(permissions?.canManageStaff ? [{ href: '/staff', label: 'Xodimlar', icon: ClipboardList }] : []),
   ]
 
   const otherLinks = [
-    { href: '/settings', label: 'Sozlamalar', icon: Settings },
+    ...(permissions?.canManageSettings ? [{ href: '/settings', label: 'Sozlamalar', icon: Settings }] : []),
   ]
 
   const renderLink = (link) => {

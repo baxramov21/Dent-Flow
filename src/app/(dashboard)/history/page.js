@@ -6,7 +6,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { History, CreditCard, Search, Calendar, User, FileText, Download } from 'lucide-react'
 
 export default function HistoryPage() {
-  const { clinic, isLoading: clinicLoading } = useClinic()
+  const { clinic, isLoading: clinicLoading, isAdmin, permissions, staffProfile } = useClinic()
   const supabase = createClient()
 
   const [activeTab, setActiveTab] = useState('procedures') // 'procedures' | 'payments' | 'debts'
@@ -29,7 +29,7 @@ export default function HistoryPage() {
     setLoading(true)
     try {
       // 1. Fetch Completed Procedures
-      const { data: procData, error: procError } = await supabase
+      let procQuery = supabase
         .from('treatment_items')
         .select(`
           id,
@@ -37,8 +37,9 @@ export default function HistoryPage() {
           price_override,
           completed_at,
           services(name_uz, name),
-          treatment_plans(
+          treatment_plans!inner(
             id,
+            staff_id,
             patients(id, full_name, phone),
             staff(id, full_name)
           )
@@ -47,26 +48,36 @@ export default function HistoryPage() {
         .eq('status', 'completed')
         .order('completed_at', { ascending: false })
 
+      if (staffProfile?.role === 'dentist') {
+        procQuery = procQuery.eq('treatment_plans.staff_id', staffProfile.id)
+      }
+
+      const { data: procData, error: procError } = await procQuery
+
       if (procError) throw procError
       setProcedures(procData || [])
 
-      // 2. Fetch Payments
-      const { data: payData, error: payError } = await supabase
-        .from('payments')
-        .select(`
-          id,
-          amount,
-          payment_method,
-          notes,
-          paid_at,
-          patients(id, full_name),
-          treatment_plans(id, title)
-        `)
-        .eq('clinic_id', clinic.id)
-        .order('paid_at', { ascending: false })
+      // 2. Fetch Payments (Only if allowed to view financials)
+      if (permissions?.canViewFinancials) {
+        const { data: payData, error: payError } = await supabase
+          .from('payments')
+          .select(`
+            id,
+            amount,
+            payment_method,
+            notes,
+            paid_at,
+            patients(id, full_name),
+            treatment_plans(id, title)
+          `)
+          .eq('clinic_id', clinic.id)
+          .order('paid_at', { ascending: false })
 
-      if (payError) throw payError
-      setPayments(payData || [])
+        if (payError) throw payError
+        setPayments(payData || [])
+      } else {
+        setPayments([])
+      }
 
     } catch (error) {
       console.error('Tarixni yuklashda xatolik:', error)
@@ -193,55 +204,65 @@ export default function HistoryPage() {
             <FileText size={18} />
             Muolajalar
           </button>
-          <button 
-            onClick={() => setActiveTab('payments')}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
-              backgroundColor: activeTab === 'payments' ? 'var(--bg-hover)' : 'transparent',
-              color: activeTab === 'payments' ? 'var(--accent)' : 'var(--text-secondary)'
-            }}
-          >
-            <CreditCard size={18} />
-            To'lovlar
-          </button>
-          <button 
-            onClick={() => setActiveTab('debts')}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
-              backgroundColor: activeTab === 'debts' ? 'var(--bg-hover)' : 'transparent',
-              color: activeTab === 'debts' ? '#EF4444' : 'var(--text-secondary)'
-            }}
-          >
-            <User size={18} />
-            Qarzdorlik
-          </button>
+          
+          {permissions?.canViewFinancials && (
+            <>
+              <button 
+                onClick={() => setActiveTab('payments')}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
+                  backgroundColor: activeTab === 'payments' ? 'var(--bg-hover)' : 'transparent',
+                  color: activeTab === 'payments' ? 'var(--accent)' : 'var(--text-secondary)'
+                }}
+              >
+                <CreditCard size={18} />
+                To'lovlar
+              </button>
+              <button 
+                onClick={() => setActiveTab('debts')}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
+                  backgroundColor: activeTab === 'debts' ? 'var(--bg-hover)' : 'transparent',
+                  color: activeTab === 'debts' ? '#EF4444' : 'var(--text-secondary)'
+                }}
+              >
+                <User size={18} />
+                Qarzdorlik
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: permissions?.canViewFinancials ? 'repeat(4, 1fr)' : 'repeat(1, 1fr)', gap: '24px' }}>
         <div className="card" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami muolajalar</h3>
           <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>{totalProcedures}</p>
         </div>
-        <div className="card" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami tushum</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#10B981' }}>{totalRevenue.toLocaleString()} UZS</p>
-        </div>
-        <div className="card" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>O'rtacha chek</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#3B82F6' }}>{Math.round(avgCheck).toLocaleString()} UZS</p>
-        </div>
-        <div 
-          className="card" 
-          onClick={() => setActiveTab('debts')}
-          style={{ padding: '20px', borderLeft: '4px solid #EF4444', cursor: 'pointer', transition: 'background-color 0.2s' }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-card)'}
-        >
-          <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami Qarzdorlik</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#EF4444' }}>{totalDebt.toLocaleString()} UZS</p>
-        </div>
+        
+        {permissions?.canViewFinancials && (
+          <>
+            <div className="card" style={{ padding: '20px' }}>
+              <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami tushum</h3>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#10B981' }}>{totalRevenue.toLocaleString()} UZS</p>
+            </div>
+            <div className="card" style={{ padding: '20px' }}>
+              <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>O'rtacha chek</h3>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#3B82F6' }}>{Math.round(avgCheck).toLocaleString()} UZS</p>
+            </div>
+            <div 
+              className="card" 
+              onClick={() => setActiveTab('debts')}
+              style={{ padding: '20px', borderLeft: '4px solid #EF4444', cursor: 'pointer', transition: 'background-color 0.2s' }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-card)'}
+            >
+              <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami Qarzdorlik</h3>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#EF4444' }}>{totalDebt.toLocaleString()} UZS</p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Main Content */}
