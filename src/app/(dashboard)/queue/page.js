@@ -152,6 +152,34 @@ export default function QueuePage() {
         }
       }
 
+      if (newStatus === 'cancelled') {
+        const appointment = appointments.find(a => a.id === id)
+        if (appointment) {
+          const patientId = appointment.patients?.id || appointment.patient_id
+          const planId = appointment.treatment_plan_id
+
+          if (planId) {
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+            await supabase.from('treatment_items')
+              .update({ status: 'planned', completed_at: null, price_override: null })
+              .eq('treatment_plan_id', planId)
+              .eq('status', 'completed')
+              .gte('completed_at', yesterday)
+          }
+
+          await supabase.from('payments').delete().eq('appointment_id', id)
+
+          if (patientId) {
+            const yesterdayDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+            await supabase.from('medical_history')
+              .delete()
+              .eq('patient_id', patientId)
+              .eq('condition', 'Bajarilgan muolajalar')
+              .gte('reported_at', yesterdayDate)
+          }
+        }
+      }
+
       // Optimistic update
       setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: newStatus } : apt))
     } catch (err) {
