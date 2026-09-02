@@ -10,7 +10,10 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
   const [items, setItems] = useState([])
   const [fetching, setFetching] = useState(true)
   const [clinicServices, setClinicServices] = useState([])
-  const [selectedServiceId, setSelectedServiceId] = useState('')
+  const [expandedCategories, setExpandedCategories] = useState({})
+  const [isAddingService, setIsAddingService] = useState(false)
+  const [newServiceName, setNewServiceName] = useState('')
+  const [newServicePrice, setNewServicePrice] = useState('')
 
   const [amountPaid, setAmountPaid] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
@@ -36,7 +39,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
         
         const { data: servicesData } = await supabase
           .from('services')
-          .select('id, name, price')
+          .select('id, name, price, category')
           .eq('clinic_id', appointment.clinic_id)
           .eq('is_active', true)
           .order('name')
@@ -68,13 +71,12 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     setItems(items.map(item => item.id === id ? { ...item, finalPrice: Number(newPrice) } : item))
   }
 
-  const handleAddService = () => {
-    if (!selectedServiceId) return
-    const srv = clinicServices.find(s => s.id === selectedServiceId)
+  const handleAddService = (srvId) => {
+    const srv = clinicServices.find(s => s.id === srvId)
     if (!srv) return
 
     const newItem = {
-      id: `temp_${Date.now()}`,
+      id: `temp_${Date.now()}_${Math.random()}`,
       service_id: srv.id,
       price_override: srv.price,
       finalPrice: srv.price,
@@ -85,7 +87,38 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     }
     
     setItems([...items, newItem])
-    setSelectedServiceId('')
+  }
+
+  const handleAddNewCustomService = async () => {
+    if (!newServiceName.trim() || !newServicePrice) return
+    const priceValue = parseInt(newServicePrice) * 1000
+    
+    const { data, error } = await supabase.from('services').insert([{
+       clinic_id: appointment.clinic_id,
+       name: newServiceName,
+       price: priceValue,
+       is_active: true
+    }]).select().single()
+
+    if (!error && data) {
+       setClinicServices(prev => [...prev, data])
+       setExpandedCategories(prev => ({ ...prev, [data.category || 'Boshqa']: true }))
+       setNewServiceName('')
+       setNewServicePrice('')
+       setIsAddingService(false)
+       
+       const newItem = {
+         id: `temp_${Date.now()}_${Math.random()}`,
+         service_id: data.id,
+         price_override: data.price,
+         finalPrice: data.price,
+         status: 'planned',
+         services: { name: data.name },
+         selected: true,
+         isNew: true
+       }
+       setItems(prevItems => [...prevItems, newItem])
+    }
   }
 
   const totalCost = items
@@ -195,30 +228,60 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
-            {/* Treatment Items Selection */}
+            {/* Service Catalog (Accordion) */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Bajarilgan xizmatlar</h3>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <select
-                    value={selectedServiceId}
-                    onChange={(e) => setSelectedServiceId(e.target.value)}
-                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
-                  >
-                    <option value="">+ Xizmat qo'shish</option>
-                    {clinicServices.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.price} so'm)</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={handleAddService}
-                    disabled={!selectedServiceId}
-                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: 'var(--radius-sm)', border: 'none', backgroundColor: selectedServiceId ? 'var(--accent)' : 'var(--bg-hover)', color: selectedServiceId ? 'white' : 'var(--text-secondary)', cursor: selectedServiceId ? 'pointer' : 'not-allowed' }}
-                  >
-                    Qo'shish
+              <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px' }}>Klinika xizmatlari (Qo'shish)</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+                {Object.entries(
+                  clinicServices.reduce((acc, s) => {
+                    const cat = s.category || 'Boshqa'
+                    if (!acc[cat]) acc[cat] = []
+                    acc[cat].push(s)
+                    return acc
+                  }, {})
+                ).map(([category, srvs]) => (
+                  <div key={category} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                    <button type="button" onClick={() => setExpandedCategories(prev => ({...prev, [category]: !prev[category]}))} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: 'var(--bg-card)', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>
+                      {category}
+                      <span style={{ color: 'var(--text-muted)' }}>{expandedCategories[category] ? '▼' : '▶'}</span>
+                    </button>
+                    {expandedCategories[category] && (
+                      <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: 'white', borderTop: '1px solid var(--border)' }}>
+                        {srvs.map(s => (
+                          <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--bg-hover)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>{s.name}</span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{(s.price).toLocaleString()} UZS</span>
+                            </div>
+                            <button type="button" onClick={() => handleAddService(s.id)} style={{ padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent)', backgroundColor: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}>
+                              + Qo'shish
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {!isAddingService ? (
+                  <button type="button" onClick={() => setIsAddingService(true)} style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '12px', color: 'var(--accent)', backgroundColor: 'transparent', border: '1px dashed var(--accent)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: '500', marginTop: '4px' }}>
+                    + Boshqa xizmat yaratish
                   </button>
-                </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <input type="text" placeholder="Xizmat nomi" value={newServiceName} onChange={e => setNewServiceName(e.target.value)} style={{ flex: 1, minWidth: '150px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', outline: 'none' }} />
+                    <input type="number" placeholder="Narxi (Ming so'm, masalan: 50)" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)} style={{ width: '220px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '13px', outline: 'none' }} />
+                    <button type="button" onClick={handleAddNewCustomService} style={{ padding: '8px 16px', backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>Yaratish</button>
+                    <button type="button" onClick={() => setIsAddingService(false)} style={{ padding: '8px 12px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Bekor qilish</button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Treatment Items Selection (Cart) */}
+            <div style={{ borderTop: '2px dashed var(--border)', paddingTop: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Bajarilgan xizmatlar (Ro'yxat)</h3>
               </div>
               
               {items.length === 0 ? (
