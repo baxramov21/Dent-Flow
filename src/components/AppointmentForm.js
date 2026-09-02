@@ -339,51 +339,54 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         </div>
       )}
 
-      {/* Segmented Control for Patient Type */}
-      <div style={{ display: 'flex', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '4px' }}>
-        <button 
-          type="button"
-          onClick={() => setIsNewPatient(false)}
-          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
-            backgroundColor: !isNewPatient ? 'white' : 'transparent',
-            boxShadow: !isNewPatient ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-            color: !isNewPatient ? 'var(--text-primary)' : 'var(--text-secondary)',
-            transition: 'all 0.2s'
-          }}
-        >
-          Mavjud bemor
-        </button>
-        <button 
-          type="button"
-          onClick={() => setIsNewPatient(true)}
-          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
-            backgroundColor: isNewPatient ? 'white' : 'transparent',
-            boxShadow: isNewPatient ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-            color: isNewPatient ? 'var(--accent)' : 'var(--text-secondary)',
-            transition: 'all 0.2s'
-          }}
-        >
-          Yangi bemor qo'shish
-        </button>
-      </div>
+      {/* Segmented Control for Patient Type - Only show when creating NEW appointment */}
+      {!initialData?.id && (
+        <div style={{ display: 'flex', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '4px' }}>
+          <button 
+            type="button"
+            onClick={() => setIsNewPatient(false)}
+            style={{ flex: 1, padding: '10px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
+              backgroundColor: !isNewPatient ? 'white' : 'transparent',
+              boxShadow: !isNewPatient ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color: !isNewPatient ? 'var(--text-primary)' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            Mavjud bemor
+          </button>
+          <button 
+            type="button"
+            onClick={() => setIsNewPatient(true)}
+            style={{ flex: 1, padding: '10px', borderRadius: '4px', border: 'none', fontWeight: '500', cursor: 'pointer',
+              backgroundColor: isNewPatient ? 'white' : 'transparent',
+              boxShadow: isNewPatient ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color: isNewPatient ? 'var(--accent)' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            Yangi bemor qo'shish
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {!isNewPatient ? (
+        {!isNewPatient || initialData?.id ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '500' }}>Bemorni tanlang *</label>
+            <label style={{ fontSize: '14px', fontWeight: '500' }}>{initialData?.id ? 'Bemor' : 'Bemorni tanlang *'}</label>
             <select
               name="patient_id"
               required={!isNewPatient}
               value={formData.patient_id}
               onChange={handleChange}
-              style={{ padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', backgroundColor: 'var(--bg-card)' }}
+              disabled={!!initialData?.id}
+              style={{ padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', backgroundColor: initialData?.id ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               <option value="" disabled>Bemorni tanlang...</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.full_name}</option>
               ))}
             </select>
-            {patients.length === 0 && (
+            {patients.length === 0 && !initialData?.id && (
               <span style={{ fontSize: '12px', color: 'var(--danger)' }}>Bemorlar topilmadi. Iltimos, "Yangi bemor qo'shish"ni tanlang.</span>
             )}
           </div>
