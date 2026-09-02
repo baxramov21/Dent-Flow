@@ -5,8 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import { Clock, User, Phone, Play, CheckCircle, CreditCard, XCircle, ArrowRight, Edit } from 'lucide-react'
 import Link from 'next/link'
-import AppointmentForm from '@/components/AppointmentForm'
-import AppointmentManagerModal from '@/components/AppointmentManagerModal'
+import { useRouter } from 'next/navigation'
 
 export default function QueuePage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -14,10 +13,9 @@ export default function QueuePage() {
   
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
   const [dentists, setDentists] = useState([])
   const [selectedDentist, setSelectedDentist] = useState('all')
-  const [editingAppointment, setEditingAppointment] = useState(null)
-  const [managingAppointment, setManagingAppointment] = useState(null)
 
   const fetchQueue = async () => {
     if (!clinic) return
@@ -319,7 +317,7 @@ export default function QueuePage() {
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button onClick={() => setManagingAppointment(apt)} title="Boshqarish" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => router.push(`/appointments/${apt.id}`)} title="Boshqarish" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={18} />
                         </button>
                         {apt.status === 'scheduled' && (
@@ -328,7 +326,7 @@ export default function QueuePage() {
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => setManagingAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <button onClick={() => router.push(`/appointments/${apt.id}`)} title="To'lov va Yakunlash" style={{ padding: '8px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <CreditCard size={18} />
                           </button>
                         )}
@@ -346,14 +344,6 @@ export default function QueuePage() {
           </tbody>
         </table>
       </div>
-
-      {managingAppointment && (
-        <AppointmentManagerModal 
-          appointment={managingAppointment}
-          onClose={() => setManagingAppointment(null)}
-          onSuccess={() => { setManagingAppointment(null); fetchQueue(); }}
-        />
-      )}
     </div>
   )
 }

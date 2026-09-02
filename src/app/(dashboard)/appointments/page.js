@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import { Plus, Clock, Calendar as CalendarIcon, User as UserIcon, Phone, ChevronLeft, ChevronRight, User, Play, CheckCircle, CreditCard, XCircle, Edit } from 'lucide-react'
 import AppointmentForm from '@/components/AppointmentForm'
-import AppointmentManagerModal from '@/components/AppointmentManagerModal'
+import { useRouter } from 'next/navigation'
 
 export default function AppointmentsPage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -14,7 +14,7 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [managingAppointment, setManagingAppointment] = useState(null)
+  const router = useRouter()
   const [dentists, setDentists] = useState([])
   
   // Calendar States
@@ -255,7 +255,7 @@ export default function AppointmentsPage() {
 
                       {/* Quick Action Buttons */}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', marginTop: 'auto', paddingTop: '4px', borderTop: '1px solid var(--border)' }}>
-                        <button onClick={() => setManagingAppointment(apt)} title="Boshqarish" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => router.push(`/appointments/${apt.id}`)} title="Boshqarish" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={14} />
                         </button>
                         {apt.status === 'scheduled' && (
@@ -264,7 +264,7 @@ export default function AppointmentsPage() {
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => setManagingAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <button onClick={() => router.push(`/appointments/${apt.id}`)} title="To'lov va Yakunlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <CreditCard size={14} />
                           </button>
                         )}
@@ -353,7 +353,7 @@ export default function AppointmentsPage() {
                       
                       {/* Quick Action Buttons for Week View */}
                       <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '4px', marginTop: '2px', paddingTop: '4px', borderTop: '1px solid var(--border)' }}>
-                        <button onClick={() => setManagingAppointment(apt)} title="Boshqarish" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => router.push(`/appointments/${apt.id}`)} title="Boshqarish" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={12} />
                         </button>
                         {apt.status === 'scheduled' && (
@@ -362,7 +362,7 @@ export default function AppointmentsPage() {
                           </button>
                         )}
                         {apt.status === 'in_chair' && (
-                          <button onClick={() => setManagingAppointment(apt)} title="To'lov va Yakunlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <button onClick={() => router.push(`/appointments/${apt.id}`)} title="To'lov va Yakunlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <CreditCard size={12} />
                           </button>
                         )}
@@ -506,14 +506,6 @@ export default function AppointmentsPage() {
             />
           </div>
         </div>
-      )}
-
-      {managingAppointment && (
-        <AppointmentManagerModal 
-          appointment={managingAppointment}
-          onClose={() => setManagingAppointment(null)}
-          onSuccess={() => { setManagingAppointment(null); fetchAppointments(); }}
-        />
       )}
     </div>
   )
