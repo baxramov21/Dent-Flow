@@ -1,7 +1,7 @@
 'use client'
 
 import { useClinic } from '@/context/ClinicContext'
-import { Building2, Mail, Phone, MapPin, Globe, Clock, Coffee } from 'lucide-react'
+import { Building2, Mail, Phone, MapPin, Globe, Clock, Coffee, Send } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -30,6 +30,10 @@ function SettingsPageContent() {
   const [breakStart, setBreakStart] = useState('13:00')
   const [breakEnd, setBreakEnd] = useState('14:00')
 
+  const [telegramChatId, setTelegramChatId] = useState('')
+  const [reportFrequency, setReportFrequency] = useState('daily')
+  const [reportTime, setReportTime] = useState('18:00')
+
   useEffect(() => {
     if (clinic) {
       setName(clinic.name || '')
@@ -42,6 +46,10 @@ function SettingsPageContent() {
         setBreakStart(clinic.working_hours.break_start_time || '13:00')
         setBreakEnd(clinic.working_hours.break_end_time || '14:00')
       }
+
+      setTelegramChatId(clinic.telegram_chat_id || '')
+      setReportFrequency(clinic.report_frequency || 'daily')
+      setReportTime(clinic.report_time || '18:00')
     }
   }, [clinic])
 
@@ -71,6 +79,19 @@ function SettingsPageContent() {
     setIsSubmitting(false)
     if (error) alert("Xatolik: " + error.message)
     else alert("Ish vaqtlari muvaffaqiyatli saqlandi!")
+  }
+
+  const handleSaveTelegram = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const { error } = await supabase.from('clinics').update({
+      telegram_chat_id: telegramChatId,
+      report_frequency: reportFrequency,
+      report_time: reportTime
+    }).eq('id', clinic.id)
+    setIsSubmitting(false)
+    if (error) alert("Xatolik: " + error.message)
+    else alert("Telegram sozlamalari saqlandi!")
   }
 
   if (isLoading) return <div>Yuklanmoqda...</div>
@@ -182,18 +203,64 @@ function SettingsPageContent() {
               <option value="en">English</option>
             </select>
           </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
-            <div>
-              <h4 style={{ fontWeight: '500' }}>SMS xabarnomalar</h4>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Bemorlarga avtomatik SMS yuborish (Tez orada)</p>
-            </div>
-            <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-              <input type="checkbox" disabled style={{ opacity: 0, width: 0, height: 0 }} />
-              <span style={{ position: 'absolute', cursor: 'not-allowed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#E5E7EB', borderRadius: '24px' }}></span>
-            </label>
-          </div>
         </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Send size={20} color="#0088cc" /> Telegram Xabarnomalar
+        </h2>
+        
+        <form onSubmit={handleSaveTelegram} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            Kunlik yoki haftalik moliyaviy hisobotlarni Telegram orqali qabul qiling.
+            Tizim @DentFlowBot orqali xabar yuboradi. Boshlash uchun botga o'tib <code>/start</code> ni bosing.
+          </p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>Telegram Chat ID</label>
+              <input 
+                type="text" 
+                value={telegramChatId} 
+                onChange={e => setTelegramChatId(e.target.value)} 
+                placeholder="Masalan: 123456789" 
+                style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} 
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Chat ID ni bilish uchun @userinfobot ga yozing</span>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>Xabar yuborish vaqti</label>
+              <input 
+                type="time" 
+                value={reportTime} 
+                onChange={e => setReportTime(e.target.value)} 
+                style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '500' }}>Chastota</label>
+            <select 
+              value={reportFrequency} 
+              onChange={e => setReportFrequency(e.target.value)}
+              style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+            >
+              <option value="daily">Har kuni</option>
+              <option value="weekly">Har haftada (Yakshanba)</option>
+              <option value="monthly">Har oyda</option>
+              <option value="never">Yuborilmasin</option>
+            </select>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+            <button type="submit" disabled={isSubmitting} style={{ padding: '10px 24px', backgroundColor: 'var(--accent)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: '500' }}>
+              Telegram sozlamalarini saqlash
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
