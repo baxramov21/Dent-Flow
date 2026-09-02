@@ -10,7 +10,7 @@ export default function Sidebar() {
 
   const mainLinks = [
     { href: '/appointments', label: 'Kalendar', icon: Calendar },
-    { href: '/', label: 'Umumiy ko\'rinish', icon: LayoutDashboard },
+    { href: '/dashboard', label: 'Umumiy ko\'rinish', icon: LayoutDashboard },
     { href: '/queue', label: 'Bugungi navbat', icon: Clock },
     { href: '/patients', label: 'Bemorlar', icon: Users },
   ]
@@ -27,8 +27,8 @@ export default function Sidebar() {
 
   const renderLink = (link) => {
     const Icon = link.icon
-    const isActive = link.href === '/' 
-      ? pathname === '/' 
+    const isActive = link.href === '/dashboard' 
+      ? pathname === '/dashboard' 
       : pathname.startsWith(link.href)
       
     return (
