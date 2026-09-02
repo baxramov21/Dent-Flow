@@ -188,7 +188,7 @@ export default function QueuePage() {
     switch (status) {
       case 'paid': return { label: 'To\'landi', bg: '#D1FAE5', color: '#065F46' }
       case 'partially_paid': return { label: 'Qisman to\'landi', bg: '#FEF3C7', color: '#D97706' }
-      case 'unpaid': return { label: 'Nasiya', bg: '#FEE2E2', color: '#991B1B' }
+      case 'unpaid': return { label: 'Bir qismini keyinroq to\'lash', bg: '#FEE2E2', color: '#991B1B' }
       default: return null
     }
   }

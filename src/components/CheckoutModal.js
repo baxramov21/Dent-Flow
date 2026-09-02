@@ -229,7 +229,7 @@ export default function CheckoutModal({ appointment, onClose, onSuccess }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Qoldiq (Nasiya)</label>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Qoldiq (Bir qismini keyinroq to'lash)</label>
                 <div style={{ fontSize: '20px', fontWeight: 'bold', color: remainingBalance > 0 ? '#991B1B' : '#065F46' }}>
                   {remainingBalance.toLocaleString()} <span style={{ fontSize: '14px', fontWeight: 'normal' }}>so'm</span>
                 </div>
@@ -238,7 +238,7 @@ export default function CheckoutModal({ appointment, onClose, onSuccess }) {
 
             {remainingBalance > 0 && (
               <div style={{ padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 'var(--radius-sm)', color: '#991B1B', fontSize: '13px' }}>
-                <strong>Eslatma:</strong> Qoldiq summa bemorning umumiy qarziga (Nasiya) avtomatik qo'shiladi.
+                <strong>Eslatma:</strong> Qoldiq summa bemorning umumiy qarziga avtomatik qo'shiladi.
               </div>
             )}
 
