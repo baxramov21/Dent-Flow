@@ -335,7 +335,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
               
               {!isAddingService ? (
                 <button type="button" onClick={() => setIsAddingService(true)} style={{ width: '100%', padding: '10px 12px', fontSize: '13px', color: 'var(--accent)', backgroundColor: 'transparent', border: '1px dashed var(--accent)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: '500', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                  + Boshqa xizmat (ad-hoc) qo'shish
+                  + Boshqa xizmat qo'shish
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: '8px', padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', alignItems: 'center', flexWrap: 'wrap' }}>
