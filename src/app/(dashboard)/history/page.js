@@ -16,8 +16,13 @@ export default function HistoryPage() {
   const [procedures, setProcedures] = useState([])
   const [payments, setPayments] = useState([])
   
-  // Filters
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Debt Payment Modal State
+  const [payDebtModal, setPayDebtModal] = useState({ isOpen: false, patient: null, maxAmount: 0 })
+  const [debtAmount, setDebtAmount] = useState('')
+  const [debtMethod, setDebtMethod] = useState('cash')
+  const [isPaying, setIsPaying] = useState(false)
 
   const fetchData = async () => {
     if (!clinic) return
@@ -75,6 +80,34 @@ export default function HistoryPage() {
       fetchData()
     }
   }, [clinic, clinicLoading])
+
+  const handlePayDebt = async (e) => {
+    e.preventDefault()
+    if (!payDebtModal.patient || !debtAmount || Number(debtAmount) <= 0) return
+    
+    setIsPaying(true)
+    try {
+      const { error } = await supabase.from('payments').insert({
+        clinic_id: clinic.id,
+        patient_id: payDebtModal.patient.id,
+        amount: Number(debtAmount),
+        payment_method: debtMethod,
+        notes: "Qarz to'lovi"
+      })
+
+      if (error) throw error
+
+      setPayDebtModal({ isOpen: false, patient: null, maxAmount: 0 })
+      setDebtAmount('')
+      setDebtMethod('cash')
+      fetchData() // Refresh data
+    } catch (error) {
+      console.error("Qarz to'lovida xatolik:", error)
+      alert("Xatolik yuz berdi: " + error.message)
+    } finally {
+      setIsPaying(false)
+    }
+  }
 
   const filteredProcedures = procedures.filter(p => {
     const q = searchQuery.toLowerCase()
@@ -199,7 +232,13 @@ export default function HistoryPage() {
           <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>O'rtacha chek</h3>
           <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#3B82F6' }}>{Math.round(avgCheck).toLocaleString()} UZS</p>
         </div>
-        <div className="card" style={{ padding: '20px', borderLeft: '4px solid #EF4444' }}>
+        <div 
+          className="card" 
+          onClick={() => setActiveTab('debts')}
+          style={{ padding: '20px', borderLeft: '4px solid #EF4444', cursor: 'pointer', transition: 'background-color 0.2s' }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-card)'}
+        >
           <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami Qarzdorlik</h3>
           <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#EF4444' }}>{totalDebt.toLocaleString()} UZS</p>
         </div>
@@ -343,13 +382,14 @@ export default function HistoryPage() {
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Jami hisoblangan</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>To'langan</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Qolgan Qarz</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600', textAlign: 'right' }}>Amallar</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
+                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
               ) : filteredDebtors.length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Qarzdor bemorlar yo'q</td></tr>
+                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Qarzdor bemorlar yo'q</td></tr>
               ) : (
                 filteredDebtors.map(d => (
                   <tr key={d.patient.id} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -368,6 +408,18 @@ export default function HistoryPage() {
                     <td style={{ padding: '16px 24px', fontWeight: 'bold', color: '#EF4444' }}>
                       {d.debt.toLocaleString()} UZS
                     </td>
+                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                      <button 
+                        onClick={() => {
+                          setPayDebtModal({ isOpen: true, patient: d.patient, maxAmount: d.debt })
+                          setDebtAmount(d.debt.toString())
+                          setDebtMethod('cash')
+                        }}
+                        style={{ padding: '6px 12px', backgroundColor: 'var(--bg-hover)', color: 'var(--accent)', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                      >
+                        To'lov qo'shish
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -376,6 +428,63 @@ export default function HistoryPage() {
         )}
 
       </div>
+
+      {/* Pay Debt Modal */}
+      {payDebtModal.isOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'var(--bg-card)', padding: '24px', borderRadius: 'var(--radius-lg)', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Qarz to'lash - {payDebtModal.patient?.full_name}</h2>
+            
+            <form onSubmit={handlePayDebt}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Summa (UZS)</label>
+                <input 
+                  type="number" 
+                  value={debtAmount}
+                  onChange={(e) => setDebtAmount(e.target.value)}
+                  max={payDebtModal.maxAmount}
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }}
+                />
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Jami qarz: {payDebtModal.maxAmount.toLocaleString()} UZS
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>To'lov turi</label>
+                <select 
+                  value={debtMethod}
+                  onChange={(e) => setDebtMethod(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }}
+                >
+                  <option value="cash">Naqd pul</option>
+                  <option value="card">Plastik karta</option>
+                  <option value="transfer">Pul o'tkazmasi</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setPayDebtModal({ isOpen: false, patient: null, maxAmount: 0 })}
+                  style={{ padding: '8px 16px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontWeight: '500' }}
+                >
+                  Bekor qilish
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isPaying}
+                  style={{ padding: '8px 16px', backgroundColor: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', cursor: isPaying ? 'not-allowed' : 'pointer', fontWeight: '500' }}
+                >
+                  {isPaying ? 'Saqlanmoqda...' : 'To\'lovni qabul qilish'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
