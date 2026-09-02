@@ -27,14 +27,14 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
     notes: initialData?.notes || ''
   })
 
-  // New Patient State
+  // New / Edit Patient State
   const [isNewPatient, setIsNewPatient] = useState(false)
   const [newPatientData, setNewPatientData] = useState({
-    full_name: '',
-    phone: '+998-',
-    date_of_birth: '',
-    gender: 'male',
-    address: '',
+    full_name: initialData?.patients?.full_name || '',
+    phone: initialData?.patients?.phone || '+998-',
+    date_of_birth: initialData?.patients?.date_of_birth || '',
+    gender: initialData?.patients?.gender || 'male',
+    address: initialData?.patients?.address || '',
     condition: ''
   })
 
@@ -258,6 +258,19 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
       // ---- End conflict check ----
 
       if (initialData?.id) {
+        // Update patient info first
+        if (!newPatientData.full_name.trim()) throw new Error("Bemor ismini kiriting")
+        
+        const { error: pErr } = await supabase.from('patients').update({
+          full_name: newPatientData.full_name,
+          phone: newPatientData.phone,
+          date_of_birth: newPatientData.date_of_birth || null,
+          gender: newPatientData.gender,
+          address: newPatientData.address || null
+        }).eq('id', initialData.patient_id)
+        
+        if (pErr) throw pErr
+
         // Update existing appointment
         const { data, error: updateError } = await supabase
           .from('appointments')
@@ -370,23 +383,22 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {!isNewPatient || initialData?.id ? (
+        {!isNewPatient && !initialData?.id ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '500' }}>{initialData?.id ? 'Bemor' : 'Bemorni tanlang *'}</label>
+            <label style={{ fontSize: '14px', fontWeight: '500' }}>Bemorni tanlang *</label>
             <select
               name="patient_id"
               required={!isNewPatient}
               value={formData.patient_id}
               onChange={handleChange}
-              disabled={!!initialData?.id}
-              style={{ padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', backgroundColor: initialData?.id ? 'var(--bg-hover)' : 'var(--bg-card)' }}
+              style={{ padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', backgroundColor: 'var(--bg-card)' }}
             >
               <option value="" disabled>Bemorni tanlang...</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.full_name}</option>
               ))}
             </select>
-            {patients.length === 0 && !initialData?.id && (
+            {patients.length === 0 && (
               <span style={{ fontSize: '12px', color: 'var(--danger)' }}>Bemorlar topilmadi. Iltimos, "Yangi bemor qo'shish"ni tanlang.</span>
             )}
           </div>
@@ -401,7 +413,7 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
                   type="text"
                   name="full_name"
                   placeholder="Ism familiya"
-                  required={isNewPatient}
+                  required={isNewPatient || !!initialData?.id}
                   value={newPatientData.full_name}
                   onChange={handleNewPatientChange}
                   style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
@@ -413,7 +425,7 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
                   type="tel"
                   name="phone"
                   placeholder="+998..."
-                  required={isNewPatient}
+                  required={isNewPatient || !!initialData?.id}
                   value={newPatientData.phone}
                   onChange={handleNewPatientChange}
                   style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
@@ -467,18 +479,20 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
               />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '500' }}>Tibbiy holati / Kasalliklari *</label>
-              <input
-                type="text"
-                name="condition"
-                placeholder="Allergiyalar, surunkali kasalliklar (yo'q bo'lsa 'Yo'q')..."
-                required={isNewPatient}
-                value={newPatientData.condition}
-                onChange={handleNewPatientChange}
-                style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
-              />
-            </div>
+            {!initialData?.id && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500' }}>Tibbiy holati / Kasalliklari *</label>
+                <input
+                  type="text"
+                  name="condition"
+                  placeholder="Allergiyalar, surunkali kasalliklar (yo'q bo'lsa 'Yo'q')..."
+                  required={isNewPatient}
+                  value={newPatientData.condition}
+                  onChange={handleNewPatientChange}
+                  style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
