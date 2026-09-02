@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, FileText, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
+import EditPatientModal from '@/components/EditPatientModal'
 
 export default function PatientProfilePage() {
   const { id } = useParams()
@@ -21,6 +22,7 @@ export default function PatientProfilePage() {
   
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'medical' | 'treatments' | 'appointments'
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
   
   // States for forms
   const [isAddingCondition, setIsAddingCondition] = useState(false)
@@ -57,39 +59,38 @@ export default function PatientProfilePage() {
     }
   }
 
-  useEffect(() => {
+  const fetchPatientData = useCallback(async () => {
     if (!id || clinicLoading) return
+    setLoading(true)
+    try {
+      const [patientRes, medicalRes, staffRes, servicesRes, appointmentsRes] = await Promise.all([
+        supabase.from('patients').select('*').eq('id', id).single(),
+        supabase.from('medical_history').select('*').eq('patient_id', id).order('reported_at', { ascending: false }),
+        supabase.from('staff').select('id, full_name').eq('clinic_id', clinic.id).eq('role', 'dentist'),
+        supabase.from('services').select('*').eq('clinic_id', clinic.id).eq('is_active', true),
+        supabase.from('appointments').select('*, staff:dentist_id(full_name)').eq('patient_id', id).order('start_time', { ascending: false })
+      ])
 
-    async function loadData() {
-      setLoading(true)
-      try {
-        const [patientRes, medicalRes, staffRes, servicesRes, appointmentsRes] = await Promise.all([
-          supabase.from('patients').select('*').eq('id', id).single(),
-          supabase.from('medical_history').select('*').eq('patient_id', id).order('reported_at', { ascending: false }),
-          supabase.from('staff').select('id, full_name').eq('clinic_id', clinic.id).eq('role', 'dentist'),
-          supabase.from('services').select('*').eq('clinic_id', clinic.id).eq('is_active', true),
-          supabase.from('appointments').select('*, staff:dentist_id(full_name)').eq('patient_id', id).order('start_time', { ascending: false })
-        ])
+      if (patientRes.error) throw patientRes.error
+      
+      setPatient(patientRes.data)
+      if (!medicalRes.error) setMedicalHistory(medicalRes.data)
+      if (!staffRes.error) setDentists(staffRes.data)
+      if (!servicesRes.error) setServices(servicesRes.data)
+      if (!appointmentsRes.error) setPatientAppointments(appointmentsRes.data)
+      
+      await fetchPlans()
 
-        if (patientRes.error) throw patientRes.error
-        
-        setPatient(patientRes.data)
-        if (!medicalRes.error) setMedicalHistory(medicalRes.data)
-        if (!staffRes.error) setDentists(staffRes.data)
-        if (!servicesRes.error) setServices(servicesRes.data)
-        if (!appointmentsRes.error) setPatientAppointments(appointmentsRes.data)
-        
-        await fetchPlans()
-
-      } catch (err) {
-        console.error('Bemor ma`lumotlarini yuklashda xatolik:', err)
-      } finally {
-        setLoading(false)
-      }
+    } catch (err) {
+      console.error('Bemor ma`lumotlarini yuklashda xatolik:', err)
+    } finally {
+      setLoading(false)
     }
+  }, [id, clinicLoading, clinic, supabase])
 
-    loadData()
-  }, [id, clinicLoading])
+  useEffect(() => {
+    fetchPatientData()
+  }, [fetchPatientData])
 
   const calculateAge = (dob) => {
     if (!dob) return 'N/A'
@@ -152,14 +153,11 @@ export default function PatientProfilePage() {
   const handleAddItem = async (e) => {
     e.preventDefault()
     try {
-      // Parse teeth numbers (e.g. "14, 25" -> [14, 25])
       let teeth = []
       if (newItem.tooth_number) {
         teeth = newItem.tooth_number.split(',').map(t => parseInt(t.trim())).filter(t => !isNaN(t))
       }
       
-      // If no teeth specified but quantity > 1, create multiple rows without tooth numbers
-      // If teeth are specified, create one row per tooth (ignoring quantity field for simplicity, or we can use Math.max(quantity, teeth.length))
       const insertCount = Math.max(newItem.quantity, teeth.length || 1)
       
       const insertRows = []
@@ -267,7 +265,7 @@ export default function PatientProfilePage() {
           </div>
         </div>
         <div>
-          <button style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontWeight: '500' }}>
+          <button onClick={() => setIsEditingProfile(true)} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: 'pointer', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}>
             Profilni tahrirlash
           </button>
         </div>
@@ -595,6 +593,13 @@ export default function PatientProfilePage() {
         </div>
       )}
 
+      {isEditingProfile && (
+        <EditPatientModal 
+          patient={patient} 
+          onClose={() => setIsEditingProfile(false)} 
+          onSuccess={() => { setIsEditingProfile(false); fetchPatientData(); }} 
+        />
+      )}
     </div>
   )
 }
