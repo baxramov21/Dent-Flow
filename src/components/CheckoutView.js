@@ -13,6 +13,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
   const [selectedServiceId, setSelectedServiceId] = useState('')
 
   const [amountPaid, setAmountPaid] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('cash')
 
   useEffect(() => {
     if (!appointment) return
