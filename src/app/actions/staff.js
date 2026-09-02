@@ -15,42 +15,24 @@ const supabaseAdmin = createClient(
 
 export async function createStaffMember(clinicId, formData) {
   try {
-    const email = formData.get('email')
-    const password = formData.get('password')
     const fullName = formData.get('full_name')
     const role = formData.get('role') // 'admin', 'dentist', 'receptionist'
     const phone = formData.get('phone')
+    const specialization = formData.get('specialization')
 
-    // 1. Create the user in Supabase Auth using the Admin API
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // auto-confirm their email for MVP
-      user_metadata: { full_name: fullName }
-    })
-
-    if (authError) {
-      console.error('Auth error:', authError)
-      return { error: 'Auth xatoligi: ' + authError.message }
-    }
-
-    const newUserId = authData.user.id
-
-    // 2. Insert into the public.staff table
+    // Insert into the public.staff table directly without an auth user
     const { error: staffError } = await supabaseAdmin
       .from('staff')
       .insert([{
         clinic_id: clinicId,
-        user_id: newUserId,
         full_name: fullName,
         role: role,
-        phone: phone,
+        specialization: specialization || null,
+        phone: phone || null,
         is_active: true
       }])
 
     if (staffError) {
-      // Rollback: delete the auth user if staff insertion failed
-      await supabaseAdmin.auth.admin.deleteUser(newUserId)
       console.error('Staff error:', staffError)
       return { error: 'Xodimni saqlashda xatolik: ' + staffError.message }
     }
@@ -61,3 +43,35 @@ export async function createStaffMember(clinicId, formData) {
     return { error: 'Ichki server xatoligi yuz berdi' }
   }
 }
+
+export async function updateStaffMember(staffId, formData) {
+  try {
+    const fullName = formData.get('full_name')
+    const role = formData.get('role')
+    const phone = formData.get('phone')
+    const specialization = formData.get('specialization')
+    const is_active = formData.get('is_active') === 'true'
+
+    const { error: staffError } = await supabaseAdmin
+      .from('staff')
+      .update({
+        full_name: fullName,
+        role: role,
+        specialization: specialization || null,
+        phone: phone || null,
+        is_active: is_active
+      })
+      .eq('id', staffId)
+
+    if (staffError) {
+      console.error('Staff update error:', staffError)
+      return { error: 'Xodimni yangilashda xatolik: ' + staffError.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    console.error('Server xatoligi:', err)
+    return { error: 'Ichki server xatoligi yuz berdi' }
+  }
+}
+
