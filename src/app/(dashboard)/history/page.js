@@ -39,7 +39,7 @@ export default function HistoryPage() {
           services(name_uz, name),
           treatment_plans!inner(
             id,
-            staff_id,
+            dentist_id,
             patients(id, full_name, phone),
             staff(id, full_name)
           )
@@ -49,7 +49,7 @@ export default function HistoryPage() {
         .order('completed_at', { ascending: false })
 
       if (staffProfile?.role === 'dentist') {
-        procQuery = procQuery.eq('treatment_plans.staff_id', staffProfile.id)
+        procQuery = procQuery.eq('treatment_plans.dentist_id', staffProfile.id)
       }
 
       const { data: procData, error: procError } = await procQuery
