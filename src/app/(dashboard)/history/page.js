@@ -123,13 +123,17 @@ export default function HistoryPage() {
             notes,
             paid_at,
             patients(id, full_name),
-            treatment_plans(id, title)
+            treatment_plans!inner(id, title, dentist_id)
           `)
           .eq('clinic_id', clinic.id)
           .order('paid_at', { ascending: false })
 
         if (range) {
           payQuery = payQuery.gte('paid_at', range.start).lt('paid_at', range.end)
+        }
+
+        if (selectedDentist !== 'all') {
+          payQuery = payQuery.eq('treatment_plans.dentist_id', selectedDentist)
         }
 
         const { data: payData, error: payError } = await payQuery
@@ -296,42 +300,65 @@ export default function HistoryPage() {
       </div>
 
       {/* FILTER BAR */}
-      <div className="card" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', padding: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
-          <Filter size={16} /> <span style={{ fontSize: '14px', fontWeight: '500' }}>Filtrlar:</span>
+      <div style={{ 
+        display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', 
+        padding: '16px 20px', 
+        backgroundColor: 'var(--bg-panel)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--accent)',
+        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: '600' }}>
+          <Filter size={18} /> <span style={{ fontSize: '14px' }}>Filtrlar:</span>
         </div>
         
-        <select 
-          value={datePreset}
-          onChange={(e) => setDatePreset(e.target.value)}
-          style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)', outline: 'none' }}
-        >
-          <option value="all_time">Barcha vaqt</option>
-          <option value="today">Bugun</option>
-          <option value="this_week">Shu hafta</option>
-          <option value="this_month">Shu oy</option>
-          <option value="this_year">Shu yil</option>
-          <option value="custom">Maxsus oraliq</option>
-        </select>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: 1 }}>
+          <select 
+            value={datePreset}
+            onChange={(e) => setDatePreset(e.target.value)}
+            style={{ 
+              padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--border)', 
+              backgroundColor: 'var(--bg-card)', fontSize: '14px', color: 'var(--text-primary)', 
+              outline: 'none', cursor: 'pointer', fontWeight: '500', minWidth: '160px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+            onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            <option value="all_time">Barcha vaqt</option>
+            <option value="today">Bugun</option>
+            <option value="this_week">Shu hafta</option>
+            <option value="this_month">Shu oy</option>
+            <option value="this_year">Shu yil</option>
+            <option value="custom">Maxsus oraliq</option>
+          </select>
 
-        {datePreset === 'custom' && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)' }} />
-            <span style={{ color: 'var(--text-secondary)' }}>-</span>
-            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)' }} />
-          </div>
-        )}
+          {datePreset === 'custom' && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--bg-card)', padding: '4px 8px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', fontSize: '14px', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }} />
+              <span style={{ color: 'var(--text-muted)', fontWeight: 'bold' }}>-</span>
+              <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', fontSize: '14px', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }} />
+            </div>
+          )}
 
-        <select 
-          value={selectedDentist}
-          onChange={(e) => setSelectedDentist(e.target.value)}
-          style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)', outline: 'none' }}
-        >
-          <option value="all">Barcha shifokorlar</option>
-          {dentists.map(d => (
-            <option key={d.id} value={d.id}>{d.full_name}</option>
-          ))}
-        </select>
+          <select 
+            value={selectedDentist}
+            onChange={(e) => setSelectedDentist(e.target.value)}
+            style={{ 
+              padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--border)', 
+              backgroundColor: 'var(--bg-card)', fontSize: '14px', color: 'var(--text-primary)', 
+              outline: 'none', cursor: 'pointer', fontWeight: '500', minWidth: '180px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+            onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            <option value="all">Barcha shifokorlar</option>
+            {dentists.map(d => (
+              <option key={d.id} value={d.id}>Dr. {d.full_name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* KPI Cards */}
