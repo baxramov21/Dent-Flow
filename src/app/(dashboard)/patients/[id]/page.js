@@ -7,6 +7,7 @@ import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, 
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
 import EditPatientModal from '@/components/EditPatientModal'
+import DentalChart from '@/components/DentalChart'
 
 export default function PatientProfilePage() {
   const { id } = useParams()
@@ -21,8 +22,10 @@ export default function PatientProfilePage() {
   const [dentists, setDentists] = useState([])
   
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'medical' | 'treatments' | 'appointments'
+  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'medical' | 'chart' | 'treatments' | 'appointments'
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+  
+  const [toothStatuses, setToothStatuses] = useState([])
   
   // States for forms
   const [isAddingCondition, setIsAddingCondition] = useState(false)
@@ -63,12 +66,13 @@ export default function PatientProfilePage() {
     if (!id || clinicLoading) return
     setLoading(true)
     try {
-      const [patientRes, medicalRes, staffRes, servicesRes, appointmentsRes] = await Promise.all([
+      const [patientRes, medicalRes, staffRes, servicesRes, appointmentsRes, toothRes] = await Promise.all([
         supabase.from('patients').select('*').eq('id', id).single(),
         supabase.from('medical_history').select('*').eq('patient_id', id).order('reported_at', { ascending: false }),
         supabase.from('staff').select('id, full_name').eq('clinic_id', clinic.id).eq('role', 'dentist'),
         supabase.from('services').select('*').eq('clinic_id', clinic.id).eq('is_active', true),
-        supabase.from('appointments').select('*, staff:dentist_id(full_name)').eq('patient_id', id).order('start_time', { ascending: false })
+        supabase.from('appointments').select('*, staff:dentist_id(full_name)').eq('patient_id', id).order('start_time', { ascending: false }),
+        supabase.from('tooth_status').select('*').eq('patient_id', id)
       ])
 
       if (patientRes.error) throw patientRes.error
@@ -78,6 +82,7 @@ export default function PatientProfilePage() {
       if (!staffRes.error) setDentists(staffRes.data)
       if (!servicesRes.error) setServices(servicesRes.data)
       if (!appointmentsRes.error) setPatientAppointments(appointmentsRes.data)
+      if (!toothRes.error) setToothStatuses(toothRes.data)
       
       await fetchPlans()
 
@@ -118,6 +123,33 @@ export default function PatientProfilePage() {
       setNewCondition({ condition: '', details: '' })
     } catch (err) {
       alert("Holatni saqlashda xatolik")
+    }
+  }
+
+  const updateToothStatus = async (tooth_number, status, notes = '') => {
+    try {
+      // Upsert using the constraint
+      const { data, error } = await supabase
+        .from('tooth_status')
+        .upsert({
+          clinic_id: clinic.id,
+          patient_id: id,
+          tooth_number,
+          status,
+          notes,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'patient_id, tooth_number' })
+        .select()
+      
+      if (error) throw error
+
+      setToothStatuses(prev => {
+        const filtered = prev.filter(t => t.tooth_number !== tooth_number)
+        return [...filtered, (data && data[0]) ? data[0] : { tooth_number, status, notes }]
+      })
+    } catch (err) {
+      console.error(err)
+      alert("Tish holatini saqlashda xatolik")
     }
   }
 
@@ -377,6 +409,17 @@ export default function PatientProfilePage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* CHART TAB */}
+        {activeTab === 'chart' && (
+          <div className="card">
+            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '24px' }}>Interaktiv Tish Kartasi</h3>
+            <DentalChart 
+              toothData={toothStatuses} 
+              onUpdateTooth={updateToothStatus} 
+            />
           </div>
         )}
 
