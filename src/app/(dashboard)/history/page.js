@@ -100,7 +100,21 @@ export default function HistoryPage() {
         procQuery = procQuery.eq('treatment_plans.dentist_id', staffProfile.id)
       }
 
-        const payQuery = supabase
+      const range = getDateRange()
+      if (range) {
+        procQuery = procQuery.gte('completed_at', range.start).lt('completed_at', range.end)
+      }
+
+      if (selectedDentist !== 'all') {
+        procQuery = procQuery.eq('treatment_plans.dentist_id', selectedDentist)
+      }
+
+      const { data: procData, error: procError } = await procQuery
+      if (procError) throw procError
+      setProcedures(procData || [])
+
+      if (permissions?.canViewFinancials) {
+        let payQuery = supabase
           .from('payments')
           .select(`
             id,
@@ -114,19 +128,9 @@ export default function HistoryPage() {
           .eq('clinic_id', clinic.id)
           .order('paid_at', { ascending: false })
 
-        const range = getDateRange()
         if (range) {
-          procQuery = procQuery.gte('completed_at', range.start).lt('completed_at', range.end)
-          payQuery.gte('paid_at', range.start).lt('paid_at', range.end)
+          payQuery = payQuery.gte('paid_at', range.start).lt('paid_at', range.end)
         }
-
-        if (selectedDentist !== 'all') {
-          procQuery = procQuery.eq('treatment_plans.dentist_id', selectedDentist)
-        }
-
-        const { data: procData, error: procError } = await procQuery
-        if (procError) throw procError
-        setProcedures(procData || [])
 
         const { data: payData, error: payError } = await payQuery
         if (payError) throw payError
