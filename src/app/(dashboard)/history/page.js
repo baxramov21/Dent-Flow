@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import { History, CreditCard, Search, Calendar, User, FileText, Download, Filter } from 'lucide-react'
+import AppleSelect from '@/components/AppleSelect'
+import AppleDateRange from '@/components/AppleDateRange'
+
+const DATE_PRESETS = [
+  { value: 'all_time', label: 'Barcha vaqt' },
+  { value: 'today', label: 'Bugun' },
+  { value: 'this_week', label: 'Shu hafta' },
+  { value: 'this_month', label: 'Shu oy' },
+  { value: 'this_year', label: 'Shu yil' },
+  { value: 'custom', label: 'Maxsus oraliq' }
+]
 
 export default function HistoryPage() {
   const { clinic, isLoading: clinicLoading, isAdmin, permissions, staffProfile } = useClinic()
@@ -26,8 +37,8 @@ export default function HistoryPage() {
 
   // Filters
   const [datePreset, setDatePreset] = useState('all_time')
-  const [customStart, setCustomStart] = useState('')
-  const [customEnd, setCustomEnd] = useState('')
+  const [customStart, setCustomStart] = useState(null)
+  const [customEnd, setCustomEnd] = useState(null)
   const [selectedDentist, setSelectedDentist] = useState('all')
   const [dentists, setDentists] = useState([])
 
@@ -313,51 +324,33 @@ export default function HistoryPage() {
         </div>
         
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: 1 }}>
-          <select 
+          <AppleSelect 
             value={datePreset}
-            onChange={(e) => setDatePreset(e.target.value)}
-            style={{ 
-              padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--border)', 
-              backgroundColor: 'var(--bg-card)', fontSize: '14px', color: 'var(--text-primary)', 
-              outline: 'none', cursor: 'pointer', fontWeight: '500', minWidth: '160px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s'
-            }}
-            onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-            onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <option value="all_time">Barcha vaqt</option>
-            <option value="today">Bugun</option>
-            <option value="this_week">Shu hafta</option>
-            <option value="this_month">Shu oy</option>
-            <option value="this_year">Shu yil</option>
-            <option value="custom">Maxsus oraliq</option>
-          </select>
+            onChange={setDatePreset}
+            options={DATE_PRESETS}
+          />
 
           {datePreset === 'custom' && (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--bg-card)', padding: '4px 8px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-              <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', fontSize: '14px', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }} />
-              <span style={{ color: 'var(--text-muted)', fontWeight: 'bold' }}>-</span>
-              <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', fontSize: '14px', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }} />
+            <div style={{ animation: 'fadeIn 0.2s ease' }}>
+              <AppleDateRange 
+                startDate={customStart}
+                endDate={customEnd}
+                onChange={({ start, end }) => {
+                  setCustomStart(start)
+                  setCustomEnd(end)
+                }}
+              />
             </div>
           )}
 
-          <select 
+          <AppleSelect 
             value={selectedDentist}
-            onChange={(e) => setSelectedDentist(e.target.value)}
-            style={{ 
-              padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--border)', 
-              backgroundColor: 'var(--bg-card)', fontSize: '14px', color: 'var(--text-primary)', 
-              outline: 'none', cursor: 'pointer', fontWeight: '500', minWidth: '180px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s'
-            }}
-            onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-            onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <option value="all">Barcha shifokorlar</option>
-            {dentists.map(d => (
-              <option key={d.id} value={d.id}>Dr. {d.full_name}</option>
-            ))}
-          </select>
+            onChange={setSelectedDentist}
+            options={[
+              { value: 'all', label: 'Barcha shifokorlar' },
+              ...dentists.map(d => ({ value: d.id, label: `Dr. ${d.full_name}` }))
+            ]}
+          />
         </div>
       </div>
 

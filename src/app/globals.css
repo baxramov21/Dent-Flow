@@ -256,3 +256,38 @@ main {
   color: white !important;
   font-weight: 600 !important;
 }
+
+/* Apple Aesthetic Datepicker Overrides */
+.apple-datepicker-container .react-datepicker {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+}
+.apple-datepicker-container .react-datepicker__header {
+  background-color: transparent !important;
+  border-bottom: none !important;
+}
+.apple-datepicker-container .react-datepicker__day {
+  border-radius: 50% !important;
+  transition: all 0.2s ease;
+  margin: 0.166rem !important;
+}
+.apple-datepicker-container .react-datepicker__day:hover {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+  color: var(--accent) !important;
+}
+.apple-datepicker-container .react-datepicker__day--selected,
+.apple-datepicker-container .react-datepicker__day--keyboard-selected,
+.apple-datepicker-container .react-datepicker__day--in-range {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+.apple-datepicker-container .react-datepicker__day--in-selecting-range {
+  background-color: rgba(99, 102, 241, 0.2) !important;
+}
+.apple-datepicker-container .react-datepicker__day--keyboard-selected:hover,
+.apple-datepicker-container .react-datepicker__day--in-range:hover {
+  background-color: var(--accent-hover) !important;
+}
+
