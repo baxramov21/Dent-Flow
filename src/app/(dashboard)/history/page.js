@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import { History, CreditCard, Search, Calendar, User, FileText, Download } from 'lucide-react'
+import { History, CreditCard, Search, Calendar, User, FileText, Download, Filter } from 'lucide-react'
 
 export default function HistoryPage() {
   const { clinic, isLoading: clinicLoading, isAdmin, permissions, staffProfile } = useClinic()
@@ -23,6 +23,54 @@ export default function HistoryPage() {
   const [debtAmount, setDebtAmount] = useState('')
   const [debtMethod, setDebtMethod] = useState('cash')
   const [isPaying, setIsPaying] = useState(false)
+
+  // Filters
+  const [datePreset, setDatePreset] = useState('all_time')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
+  const [selectedDentist, setSelectedDentist] = useState('all')
+  const [dentists, setDentists] = useState([])
+
+  const fetchDentists = async () => {
+    if (!clinic) return
+    const { data } = await supabase
+      .from('staff')
+      .select('id, full_name')
+      .eq('clinic_id', clinic.id)
+      .eq('role', 'dentist')
+    if (data) setDentists(data)
+  }
+
+  const getDateRange = () => {
+    const now = new Date()
+    let start, end
+
+    if (datePreset === 'today') {
+      start = new Date(now.setHours(0, 0, 0, 0))
+      end = new Date(start)
+      end.setDate(start.getDate() + 1)
+    } else if (datePreset === 'this_week') {
+      start = new Date(now.setDate(now.getDate() - now.getDay() + 1))
+      start.setHours(0, 0, 0, 0)
+      end = new Date(start)
+      end.setDate(start.getDate() + 7)
+    } else if (datePreset === 'this_month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1)
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    } else if (datePreset === 'this_year') {
+      start = new Date(now.getFullYear(), 0, 1)
+      end = new Date(now.getFullYear() + 1, 0, 1)
+    } else if (datePreset === 'custom') {
+      if (!customStart || !customEnd) return null
+      start = new Date(customStart)
+      end = new Date(customEnd)
+      end.setDate(end.getDate() + 1) // include end day fully
+    } else {
+      return null // all_time
+    }
+
+    return { start: start.toISOString(), end: end.toISOString() }
+  }
 
   const fetchData = async () => {
     if (!clinic) return
@@ -52,14 +100,7 @@ export default function HistoryPage() {
         procQuery = procQuery.eq('treatment_plans.dentist_id', staffProfile.id)
       }
 
-      const { data: procData, error: procError } = await procQuery
-
-      if (procError) throw procError
-      setProcedures(procData || [])
-
-      // 2. Fetch Payments (Only if allowed to view financials)
-      if (permissions?.canViewFinancials) {
-        const { data: payData, error: payError } = await supabase
+        const payQuery = supabase
           .from('payments')
           .select(`
             id,
@@ -73,6 +114,21 @@ export default function HistoryPage() {
           .eq('clinic_id', clinic.id)
           .order('paid_at', { ascending: false })
 
+        const range = getDateRange()
+        if (range) {
+          procQuery = procQuery.gte('completed_at', range.start).lt('completed_at', range.end)
+          payQuery.gte('paid_at', range.start).lt('paid_at', range.end)
+        }
+
+        if (selectedDentist !== 'all') {
+          procQuery = procQuery.eq('treatment_plans.dentist_id', selectedDentist)
+        }
+
+        const { data: procData, error: procError } = await procQuery
+        if (procError) throw procError
+        setProcedures(procData || [])
+
+        const { data: payData, error: payError } = await payQuery
         if (payError) throw payError
         setPayments(payData || [])
       } else {
@@ -88,9 +144,10 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!clinicLoading && clinic) {
+      fetchDentists()
       fetchData()
     }
-  }, [clinic, clinicLoading])
+  }, [clinic, clinicLoading, datePreset, customStart, customEnd, selectedDentist])
 
   const handlePayDebt = async (e) => {
     e.preventDefault()
@@ -232,6 +289,45 @@ export default function HistoryPage() {
             </>
           )}
         </div>
+      </div>
+
+      {/* FILTER BAR */}
+      <div className="card" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', padding: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+          <Filter size={16} /> <span style={{ fontSize: '14px', fontWeight: '500' }}>Filtrlar:</span>
+        </div>
+        
+        <select 
+          value={datePreset}
+          onChange={(e) => setDatePreset(e.target.value)}
+          style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)', outline: 'none' }}
+        >
+          <option value="all_time">Barcha vaqt</option>
+          <option value="today">Bugun</option>
+          <option value="this_week">Shu hafta</option>
+          <option value="this_month">Shu oy</option>
+          <option value="this_year">Shu yil</option>
+          <option value="custom">Maxsus oraliq</option>
+        </select>
+
+        {datePreset === 'custom' && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)' }} />
+            <span style={{ color: 'var(--text-secondary)' }}>-</span>
+            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)' }} />
+          </div>
+        )}
+
+        <select 
+          value={selectedDentist}
+          onChange={(e) => setSelectedDentist(e.target.value)}
+          style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-page)', fontSize: '14px', color: 'var(--text-primary)', outline: 'none' }}
+        >
+          <option value="all">Barcha shifokorlar</option>
+          {dentists.map(d => (
+            <option key={d.id} value={d.id}>{d.full_name}</option>
+          ))}
+        </select>
       </div>
 
       {/* KPI Cards */}
