@@ -54,22 +54,40 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
         }}
       >
         <div style={{
+          position: 'relative',
           width: '32px',
           height: '42px',
-          backgroundColor: statusDef.color,
-          border: statusDef.border || '1px solid rgba(0,0,0,0.1)',
-          borderRadius: '8px 8px 16px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: statusDef.textColor,
-          fontWeight: 'bold',
-          fontSize: '14px',
-          boxShadow: isSelected ? '0 0 0 4px rgba(99, 102, 241, 0.3)' : 'none',
           transition: 'all 0.2s',
-          transform: isSelected ? 'scale(1.1)' : 'scale(1)'
+          transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+          filter: isSelected ? 'drop-shadow(0 0 6px rgba(99, 102, 241, 0.5))' : 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
         }}>
-          {data.status === 'extracted' ? '✕' : ''}
+          <svg 
+            viewBox="0 0 24 24" 
+            width="100%" 
+            height="100%" 
+            fill={statusDef.color}
+            stroke={data.status === 'planned' ? '#6366F1' : 'rgba(0,0,0,0.15)'}
+            strokeWidth={data.status === 'planned' ? '1.5' : '1'}
+            strokeDasharray={data.status === 'planned' ? '3 2' : 'none'}
+            style={{ 
+              transform: num < 30 ? 'rotate(180deg)' : 'none',
+              overflow: 'visible'
+            }}
+          >
+            <path d="M10 21c-2.3 0-3-1.6-3-3s.4-4 .4-4c-.7-2-1.4-3.4-1.4-5a6 6 0 1 1 12 0c0 1.6-.7 3-1.4 5 0 0 1.1 2.6 1.1 4s-.7 3-3 3-1.5-1.5-3-1.5S12.3 21 10 21z" />
+          </svg>
+          {data.status === 'extracted' && (
+            <span style={{ 
+              position: 'absolute', 
+              color: statusDef.textColor, 
+              fontWeight: '900', 
+              fontSize: '20px',
+              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+            }}>✕</span>
+          )}
         </div>
         <span style={{ 
           fontSize: '12px', 
