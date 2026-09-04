@@ -12,8 +12,7 @@ const DATE_PRESETS = [
   { value: 'today', label: 'Bugun' },
   { value: 'this_week', label: 'Shu hafta' },
   { value: 'this_month', label: 'Shu oy' },
-  { value: 'this_year', label: 'Shu yil' },
-  { value: 'custom', label: 'Maxsus oraliq' }
+  { value: 'this_year', label: 'Shu yil' }
 ]
 
 export default function HistoryPage() {
@@ -326,8 +325,15 @@ export default function HistoryPage() {
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: 1, alignItems: 'center' }}>
           <AppleSelect 
             value={datePreset}
-            onChange={setDatePreset}
+            onChange={(val) => {
+              setDatePreset(val)
+              if (val !== 'custom') {
+                setCustomStart(null)
+                setCustomEnd(null)
+              }
+            }}
             options={DATE_PRESETS}
+            placeholder="Tanlang"
           />
 
           <div style={{ zIndex: 50 }}>
