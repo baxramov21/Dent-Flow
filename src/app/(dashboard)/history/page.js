@@ -310,73 +310,49 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        
-        {/* Left Sidebar: Filters & Calendar */}
-        <div style={{ 
-          width: '340px', 
-          display: 'flex', flexDirection: 'column', gap: '24px',
-          flexShrink: 0
-        }}>
-          <div className="card" style={{ 
-            padding: '24px', 
-            display: 'flex', flexDirection: 'column', gap: '24px',
-            backgroundColor: 'var(--bg-panel)',
-            border: '1px solid var(--accent)',
-            boxShadow: '0 4px 24px rgba(99, 102, 241, 0.08)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: '600' }}>
-              <Filter size={18} /> <span style={{ fontSize: '16px' }}>Filtrlar</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '500' }}>Vaqt oralig'i</label>
-                <AppleSelect 
-                  value={datePreset}
-                  onChange={setDatePreset}
-                  options={DATE_PRESETS}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '500' }}>Shifokor</label>
-                <AppleSelect 
-                  value={selectedDentist}
-                  onChange={setSelectedDentist}
-                  options={[
-                    { value: 'all', label: 'Barcha shifokorlar' },
-                    ...dentists.map(d => ({ value: d.id, label: `Dr. ${d.full_name}` }))
-                  ]}
-                />
-              </div>
-            </div>
-
-            {datePreset === 'custom' && (
-              <div style={{ 
-                animation: 'fadeIn 0.3s ease',
-                paddingTop: '16px',
-                borderTop: '1px solid var(--border)'
-              }}>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px', fontWeight: '500' }}>Kalendardan tanlang</label>
-                <div className="apple-datepicker-container">
-                  <AppleDateRange 
-                    startDate={customStart}
-                    endDate={customEnd}
-                    onChange={({ start, end }) => {
-                      setCustomStart(start)
-                      setCustomEnd(end)
-                    }}
-                    inline={true}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+      {/* FILTER BAR */}
+      <div style={{ 
+        display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', 
+        padding: '16px 20px', 
+        backgroundColor: 'var(--bg-panel)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--accent)',
+        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: '600' }}>
+          <Filter size={18} /> <span style={{ fontSize: '14px' }}>Filtrlar:</span>
         </div>
+        
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: 1, alignItems: 'center' }}>
+          <AppleSelect 
+            value={datePreset}
+            onChange={setDatePreset}
+            options={DATE_PRESETS}
+          />
 
-        {/* Right Main Content */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '0' }}>
+          {datePreset === 'custom' && (
+            <div style={{ animation: 'fadeIn 0.2s ease', zIndex: 50 }}>
+              <AppleDateRange 
+                startDate={customStart}
+                endDate={customEnd}
+                onChange={({ start, end }) => {
+                  setCustomStart(start)
+                  setCustomEnd(end)
+                }}
+              />
+            </div>
+          )}
+
+          <AppleSelect 
+            value={selectedDentist}
+            onChange={setSelectedDentist}
+            options={[
+              { value: 'all', label: 'Barcha shifokorlar' },
+              ...dentists.map(d => ({ value: d.id, label: `Dr. ${d.full_name}` }))
+            ]}
+          />
+        </div>
+      </div>
           
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: permissions?.canViewFinancials ? 'repeat(4, 1fr)' : 'repeat(1, 1fr)', gap: '24px' }}>
@@ -592,8 +568,6 @@ export default function HistoryPage() {
           </table>
         )}
       </div>
-    </div>
-  </div>
 
       {/* Pay Debt Modal */}
       {payDebtModal.isOpen && (
