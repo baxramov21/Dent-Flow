@@ -308,6 +308,7 @@ export default function PatientProfilePage() {
         {[
           { id: 'overview', label: 'Umumiy', icon: <Activity size={16} /> },
           { id: 'medical', label: 'Tibbiy tarix', icon: <FileText size={16} /> },
+          { id: 'chart', label: 'Tish kartasi', icon: <UserIcon size={16} /> },
           { id: 'treatments', label: 'Davolash rejalari', icon: <UserIcon size={16} /> },
           { id: 'appointments', label: 'Qabullar', icon: <Clock size={16} /> },
         ].map(tab => (
