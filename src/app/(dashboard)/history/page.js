@@ -330,18 +330,17 @@ export default function HistoryPage() {
             options={DATE_PRESETS}
           />
 
-          {datePreset === 'custom' && (
-            <div style={{ animation: 'fadeIn 0.2s ease', zIndex: 50 }}>
-              <AppleDateRange 
-                startDate={customStart}
-                endDate={customEnd}
-                onChange={({ start, end }) => {
-                  setCustomStart(start)
-                  setCustomEnd(end)
-                }}
-              />
-            </div>
-          )}
+          <div style={{ zIndex: 50 }}>
+            <AppleDateRange 
+              startDate={datePreset === 'custom' ? customStart : null}
+              endDate={datePreset === 'custom' ? customEnd : null}
+              onChange={({ start, end }) => {
+                setCustomStart(start)
+                setCustomEnd(end)
+                if (start || end) setDatePreset('custom')
+              }}
+            />
+          </div>
 
           <AppleSelect 
             value={selectedDentist}
