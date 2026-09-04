@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 
-const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]
-const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
+const UPPER_TEETH = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+const LOWER_TEETH = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17]
 
 export const TOOTH_STATUSES = [
   { id: 'healthy', label: "Sog'lom", color: '#E5E7EB', textColor: '#374151' },
@@ -73,7 +73,7 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
             strokeWidth={data.status === 'planned' ? '1.5' : '1'}
             strokeDasharray={data.status === 'planned' ? '3 2' : 'none'}
             style={{ 
-              transform: num < 30 ? 'rotate(180deg)' : 'none',
+              transform: num <= 16 ? 'rotate(180deg)' : 'none',
               overflow: 'visible'
             }}
           >
