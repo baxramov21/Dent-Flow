@@ -48,15 +48,15 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '8px',
+          gap: '12px',
           cursor: readOnly ? 'default' : 'pointer',
           position: 'relative'
         }}
       >
         <div style={{
           position: 'relative',
-          width: '32px',
-          height: '42px',
+          width: '44px',
+          height: '58px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -84,13 +84,13 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
               position: 'absolute', 
               color: statusDef.textColor, 
               fontWeight: '900', 
-              fontSize: '20px',
+              fontSize: '24px',
               textShadow: '0 1px 2px rgba(0,0,0,0.3)'
             }}>✕</span>
           )}
         </div>
         <span style={{ 
-          fontSize: '12px', 
+          fontSize: '14px', 
           fontWeight: '600', 
           color: isSelected ? 'var(--accent)' : 'var(--text-secondary)'
         }}>
@@ -107,8 +107,8 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '40px', 
-        padding: '32px', 
+        gap: '64px', 
+        padding: '40px 32px', 
         backgroundColor: 'var(--bg-panel)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border)',
@@ -117,16 +117,16 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
       }}>
         
         {/* Upper Teeth */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', minWidth: 'fit-content' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', minWidth: 'fit-content' }}>
           {UPPER_TEETH.slice(0, 8).map(renderTooth)}
-          <div style={{ width: '24px' }}></div> {/* Midline Gap */}
+          <div style={{ width: '32px' }}></div> {/* Midline Gap */}
           {UPPER_TEETH.slice(8, 16).map(renderTooth)}
         </div>
 
         {/* Lower Teeth */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', minWidth: 'fit-content' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', minWidth: 'fit-content' }}>
           {LOWER_TEETH.slice(0, 8).map(renderTooth)}
-          <div style={{ width: '24px' }}></div> {/* Midline Gap */}
+          <div style={{ width: '32px' }}></div> {/* Midline Gap */}
           {LOWER_TEETH.slice(8, 16).map(renderTooth)}
         </div>
 
