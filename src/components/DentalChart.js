@@ -4,11 +4,11 @@ const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27,
 const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
 
 export const TOOTH_STATUSES = [
-  { id: 'healthy', label: 'Sog\\'lom', color: '#E5E7EB', textColor: '#374151' },
+  { id: 'healthy', label: "Sog'lom", color: '#E5E7EB', textColor: '#374151' },
   { id: 'caries', label: 'Karies', color: '#EF4444', textColor: '#FFFFFF' },
   { id: 'filled', label: 'Plomba', color: '#3B82F6', textColor: '#FFFFFF' },
   { id: 'crown', label: 'Qoplama (Koronka)', color: '#F59E0B', textColor: '#FFFFFF' },
-  { id: 'bridge', label: 'Ko\\'prik (Most)', color: '#8B5CF6', textColor: '#FFFFFF' },
+  { id: 'bridge', label: "Ko'prik (Most)", color: '#8B5CF6', textColor: '#FFFFFF' },
   { id: 'implant', label: 'Implant', color: '#10B981', textColor: '#FFFFFF' },
   { id: 'extracted', label: 'Olingan', color: '#4B5563', textColor: '#FFFFFF' },
   { id: 'root_canal', label: 'Kanal davolangan', color: '#EC4899', textColor: '#FFFFFF' },
