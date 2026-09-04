@@ -11,7 +11,7 @@ export default function Sidebar() {
   const mainLinks = [
     { href: '/appointments', label: 'Kalendar', icon: Calendar },
     { href: '/dashboard', label: 'Umumiy ko\'rinish', icon: LayoutDashboard },
-    { href: '/queue', label: 'Bugungi navbat', icon: Clock },
+    { href: '/queue', label: 'Navbat', icon: Clock },
     { href: '/patients', label: 'Bemorlar', icon: Users },
   ]
 

@@ -16,15 +16,19 @@ export default function QueuePage() {
   const router = useRouter()
   const [dentists, setDentists] = useState([])
   const [selectedDentist, setSelectedDentist] = useState('all')
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date()
+    return d.toISOString().split('T')[0]
+  })
 
   const fetchQueue = async () => {
-    if (!clinic) return
+    if (!clinic || !selectedDate) return
     setLoading(true)
     try {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+      const startOfDay = new Date(selectedDate)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(startOfDay)
+      endOfDay.setDate(endOfDay.getDate() + 1)
 
       const { data, error } = await supabase
         .from('appointments')
@@ -38,8 +42,8 @@ export default function QueuePage() {
           staff(full_name)
         `)
         .eq('clinic_id', clinic.id)
-        .gte('start_time', today.toISOString())
-        .lt('start_time', tomorrow.toISOString())
+        .gte('start_time', startOfDay.toISOString())
+        .lt('start_time', endOfDay.toISOString())
         .order('start_time', { ascending: true })
 
       if (error) throw error
@@ -81,7 +85,7 @@ export default function QueuePage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [clinic, clinicLoading])
+  }, [clinic, clinicLoading, selectedDate])
 
   const updateStatus = async (id, newStatus) => {
     try {
@@ -232,9 +236,26 @@ export default function QueuePage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Clock color="var(--accent)" /> Bugungi navbat (Real-vaqt)
+            <Clock color="var(--accent)" /> Navbat (Real-vaqt)
           </h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Bugungi barcha bemorlar va ularning joriy holati</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Sana bo'yicha qabullar ro'yxati</p>
+        </div>
+        <div>
+          <input 
+            type="date" 
+            value={selectedDate} 
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              fontWeight: '500',
+              cursor: 'pointer',
+              fontSize: '15px'
+            }}
+          />
         </div>
       </div>
         
