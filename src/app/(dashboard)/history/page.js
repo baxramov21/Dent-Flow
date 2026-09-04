@@ -310,64 +310,88 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* FILTER BAR */}
-      <div style={{ 
-        display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', 
-        padding: '16px 20px', 
-        backgroundColor: 'var(--bg-panel)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--accent)',
-        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: '600' }}>
-          <Filter size={18} /> <span style={{ fontSize: '14px' }}>Filtrlar:</span>
-        </div>
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: 1 }}>
-          <AppleSelect 
-            value={datePreset}
-            onChange={setDatePreset}
-            options={DATE_PRESETS}
-          />
-
-          {datePreset === 'custom' && (
-            <div style={{ animation: 'fadeIn 0.2s ease' }}>
-              <AppleDateRange 
-                startDate={customStart}
-                endDate={customEnd}
-                onChange={({ start, end }) => {
-                  setCustomStart(start)
-                  setCustomEnd(end)
-                }}
-              />
+        {/* Left Sidebar: Filters & Calendar */}
+        <div style={{ 
+          width: '340px', 
+          display: 'flex', flexDirection: 'column', gap: '24px',
+          flexShrink: 0
+        }}>
+          <div className="card" style={{ 
+            padding: '24px', 
+            display: 'flex', flexDirection: 'column', gap: '24px',
+            backgroundColor: 'var(--bg-panel)',
+            border: '1px solid var(--accent)',
+            boxShadow: '0 4px 24px rgba(99, 102, 241, 0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontWeight: '600' }}>
+              <Filter size={18} /> <span style={{ fontSize: '16px' }}>Filtrlar</span>
             </div>
-          )}
 
-          <AppleSelect 
-            value={selectedDentist}
-            onChange={setSelectedDentist}
-            options={[
-              { value: 'all', label: 'Barcha shifokorlar' },
-              ...dentists.map(d => ({ value: d.id, label: `Dr. ${d.full_name}` }))
-            ]}
-          />
-        </div>
-      </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '500' }}>Vaqt oralig'i</label>
+                <AppleSelect 
+                  value={datePreset}
+                  onChange={setDatePreset}
+                  options={DATE_PRESETS}
+                />
+              </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: permissions?.canViewFinancials ? 'repeat(4, 1fr)' : 'repeat(1, 1fr)', gap: '24px' }}>
-        <div className="card" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami muolajalar</h3>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>{totalProcedures}</p>
-        </div>
-        
-        {permissions?.canViewFinancials && (
-          <>
-            <div className="card" style={{ padding: '20px' }}>
-              <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami tushum</h3>
-              <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#10B981' }}>{totalRevenue.toLocaleString()} UZS</p>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '500' }}>Shifokor</label>
+                <AppleSelect 
+                  value={selectedDentist}
+                  onChange={setSelectedDentist}
+                  options={[
+                    { value: 'all', label: 'Barcha shifokorlar' },
+                    ...dentists.map(d => ({ value: d.id, label: `Dr. ${d.full_name}` }))
+                  ]}
+                />
+              </div>
             </div>
+
+            {datePreset === 'custom' && (
+              <div style={{ 
+                animation: 'fadeIn 0.3s ease',
+                paddingTop: '16px',
+                borderTop: '1px solid var(--border)'
+              }}>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px', fontWeight: '500' }}>Kalendardan tanlang</label>
+                <div className="apple-datepicker-container">
+                  <AppleDateRange 
+                    startDate={customStart}
+                    endDate={customEnd}
+                    onChange={({ start, end }) => {
+                      setCustomStart(start)
+                      setCustomEnd(end)
+                    }}
+                    inline={true}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Main Content */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '0' }}>
+          
+          {/* KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: permissions?.canViewFinancials ? 'repeat(4, 1fr)' : 'repeat(1, 1fr)', gap: '24px' }}>
             <div className="card" style={{ padding: '20px' }}>
+              <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami muolajalar</h3>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>{totalProcedures}</p>
+            </div>
+            
+            {permissions?.canViewFinancials && (
+              <>
+                <div className="card" style={{ padding: '20px' }}>
+                  <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>Jami tushum</h3>
+                  <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#10B981' }}>{totalRevenue.toLocaleString()} UZS</p>
+                </div>
+                <div className="card" style={{ padding: '20px' }}>
               <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>O'rtacha chek</h3>
               <p style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px', color: '#3B82F6' }}>{Math.round(avgCheck).toLocaleString()} UZS</p>
             </div>
@@ -567,8 +591,9 @@ export default function HistoryPage() {
             </tbody>
           </table>
         )}
-
       </div>
+    </div>
+  </div>
 
       {/* Pay Debt Modal */}
       {payDebtModal.isOpen && (
