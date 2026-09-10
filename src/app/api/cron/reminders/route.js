@@ -32,7 +32,7 @@ export async function GET(req) {
         clinic_id,
         patient_id,
         status,
-        clinics(name, phone),
+        clinics(name, phone, telegram_bot_token, eskiz_email, eskiz_password),
         patients(id, full_name, phone, telegram_chat_id)
       `)
       .gte('start_time', tomorrowStart)
@@ -72,15 +72,15 @@ export async function GET(req) {
       let sent = false
       let methodUsed = ''
 
-      // 5. Try Telegram first if linked
-      if (patient.telegram_chat_id) {
-        sent = await sendTelegramMessage(patient.telegram_chat_id, message)
+      // 5. Try Telegram first if linked and clinic has bot token
+      if (patient.telegram_chat_id && clinic.telegram_bot_token) {
+        sent = await sendTelegramMessage(clinic.telegram_bot_token, patient.telegram_chat_id, message)
         if (sent) methodUsed = 'telegram'
       }
 
-      // 6. Fallback to SMS if Telegram failed or not linked
-      if (!sent && patient.phone) {
-        sent = await sendEskizSms(patient.phone, message)
+      // 6. Fallback to SMS if Telegram failed or not linked, and clinic has eskiz credentials
+      if (!sent && patient.phone && clinic.eskiz_email && clinic.eskiz_password) {
+        sent = await sendEskizSms(clinic.eskiz_email, clinic.eskiz_password, patient.phone, message)
         if (sent) methodUsed = 'eskiz'
       }
 

@@ -1,12 +1,11 @@
-export async function sendTelegramMessage(chatId, message) {
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  if (!token) {
-    console.error('TELEGRAM_BOT_TOKEN is missing')
+export async function sendTelegramMessage(botToken, chatId, message) {
+  if (!botToken) {
+    console.error('Bot token is missing')
     return false
   }
 
   try {
-    const url = `https://api.telegram.org/bot${token}/sendMessage`
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`
     const res = await fetch(url, {
       method: 'POST',
       headers: {

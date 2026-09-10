@@ -1,7 +1,7 @@
 'use client'
 
 import { useClinic } from '@/context/ClinicContext'
-import { Building2, Mail, Phone, MapPin, Globe, Clock, Coffee, Send } from 'lucide-react'
+import { Building2, Mail, Phone, MapPin, Globe, Clock, Coffee, Send, MessageCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -34,6 +34,10 @@ function SettingsPageContent() {
   const [reportFrequency, setReportFrequency] = useState('daily')
   const [reportTime, setReportTime] = useState('18:00')
 
+  const [telegramBotToken, setTelegramBotToken] = useState('')
+  const [eskizEmail, setEskizEmail] = useState('')
+  const [eskizPassword, setEskizPassword] = useState('')
+
   useEffect(() => {
     if (clinic) {
       setName(clinic.name || '')
@@ -50,6 +54,9 @@ function SettingsPageContent() {
       setTelegramChatId(clinic.telegram_chat_id || '')
       setReportFrequency(clinic.report_frequency || 'daily')
       setReportTime(clinic.report_time || '18:00')
+      setTelegramBotToken(clinic.telegram_bot_token || '')
+      setEskizEmail(clinic.eskiz_email || '')
+      setEskizPassword(clinic.eskiz_password || '')
     }
   }, [clinic])
 
@@ -92,6 +99,41 @@ function SettingsPageContent() {
     setIsSubmitting(false)
     if (error) alert("Xatolik: " + error.message)
     else alert("Telegram sozlamalari saqlandi!")
+  }
+
+  const handleSaveNotificationCreds = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const { error } = await supabase.from('clinics').update({
+      telegram_bot_token: telegramBotToken,
+      eskiz_email: eskizEmail,
+      eskiz_password: eskizPassword
+    }).eq('id', clinic.id)
+    
+    if (error) {
+      alert("Xatolik: " + error.message)
+      setIsSubmitting(false)
+      return
+    }
+
+    if (telegramBotToken) {
+      try {
+        const res = await fetch('/api/settings/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clinic_id: clinic.id, bot_token: telegramBotToken })
+        })
+        const data = await res.json()
+        if (!data.ok) {
+          alert("Telegram webhook ulashda xatolik: " + (data.error || "Noma'lum xato"))
+        }
+      } catch (err) {
+        alert("Tarmoq xatosi: Webhook ulanmadi")
+      }
+    }
+
+    setIsSubmitting(false)
+    alert("Xabarnoma sozlamalari muvaffaqiyatli saqlandi!")
   }
 
   if (isLoading) return <div>Yuklanmoqda...</div>
@@ -208,7 +250,65 @@ function SettingsPageContent() {
 
       <div className="card">
         <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Send size={20} color="#0088cc" /> Telegram Xabarnomalar
+          <MessageCircle size={20} color="#10B981" /> Bemorlarga Xabarnomalar Sozlamalari
+        </h2>
+        
+        <form onSubmit={handleSaveNotificationCreds} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            Bemorlarga avtomatik qabul eslatmalarini yuborish uchun o'zingizning Telegram Bot va Eskiz SMS ma'lumotlaringizni kiriting.
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '500' }}>Telegram Bot Token (BotFather'dan olingan)</label>
+            <input 
+              type="text" 
+              value={telegramBotToken} 
+              onChange={e => setTelegramBotToken(e.target.value)} 
+              placeholder="Masalan: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" 
+              style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} 
+            />
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Token kiritilganda webhook avtomatik ulanadi.</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>Eskiz Email</label>
+              <input 
+                type="email" 
+                value={eskizEmail} 
+                onChange={e => setEskizEmail(e.target.value)} 
+                placeholder="example@mail.com" 
+                style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} 
+              />
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>Eskiz Password</label>
+              <input 
+                type="password" 
+                value={eskizPassword} 
+                onChange={e => setEskizPassword(e.target.value)} 
+                placeholder="••••••••" 
+                style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} 
+              />
+            </div>
+          </div>
+          
+          <div>
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              style={{ padding: '10px 20px', backgroundColor: 'var(--accent)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
+            >
+              {isSubmitting ? 'Saqlanmoqda...' : "Xabarnoma sozlamalarini saqlash"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="card">
+        <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Send size={20} color="#0088cc" /> Klinika Ichki Xisobotlari (Telegram)
         </h2>
         
         <form onSubmit={handleSaveTelegram} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

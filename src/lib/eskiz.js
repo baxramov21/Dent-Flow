@@ -1,6 +1,4 @@
-export async function sendEskizSms(phone, message) {
-  const email = process.env.ESKIZ_EMAIL
-  const password = process.env.ESKIZ_PASSWORD
+export async function sendEskizSms(email, password, phone, message) {
   
   if (!email || !password) {
     console.error('ESKIZ credentials missing in .env')

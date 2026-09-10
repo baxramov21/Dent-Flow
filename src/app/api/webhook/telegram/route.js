@@ -7,11 +7,10 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 
 // Helper to send messages back to telegram
-async function sendMessage(chatId, text, replyMarkup = null) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`
+async function sendMessage(botToken, chatId, text, replyMarkup = null) {
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`
   const body = {
     chat_id: chatId,
     text: text,
@@ -39,6 +38,29 @@ export async function POST(req) {
 
     const { chat, text, contact } = body.message
     const chatId = chat.id
+    
+    // Extract clinic_id from URL
+    const url = new URL(req.url)
+    const clinicId = url.searchParams.get('clinic_id')
+    
+    if (!clinicId) {
+      console.error('Missing clinic_id in webhook URL')
+      return NextResponse.json({ ok: true })
+    }
+    
+    // Fetch clinic's bot token
+    const { data: clinic, error: clinicErr } = await supabaseAdmin
+      .from('clinics')
+      .select('telegram_bot_token')
+      .eq('id', clinicId)
+      .single()
+      
+    if (clinicErr || !clinic || !clinic.telegram_bot_token) {
+      console.error('Clinic not found or no bot token configured')
+      return NextResponse.json({ ok: true })
+    }
+    
+    const botToken = clinic.telegram_bot_token
 
     // Handle /start command
     if (text === '/start') {
@@ -51,6 +73,7 @@ export async function POST(req) {
       }
       
       await sendMessage(
+        botToken,
         chatId, 
         "Assalomu alaykum! DentFlow klinika tizimiga xush kelibsiz. \n\nIltimos, profilingizni ulash uchun pastdagi tugma orqali telefon raqamingizni yuboring:", 
         replyMarkup
@@ -76,7 +99,7 @@ export async function POST(req) {
         
       if (error) {
         console.error('Database error in telegram webhook:', error)
-        await sendMessage(chatId, "Xatolik yuz berdi. Iltimos keyinroq urinib ko'ring.")
+        await sendMessage(botToken, chatId, "Xatolik yuz berdi. Iltimos keyinroq urinib ko'ring.")
         return NextResponse.json({ ok: true })
       }
 
@@ -90,6 +113,7 @@ export async function POST(req) {
         }
         
         await sendMessage(
+          botToken,
           chatId, 
           `Rahmat, ${patients[0].full_name}! Profilingiz muvaffaqiyatli ulandi. Endi sizga qabul vaqtlari haqida eslatmalar yuborib turiladi.`,
           { remove_keyboard: true }
@@ -98,8 +122,9 @@ export async function POST(req) {
         // If exact match fails, they might have entered '+998 90 123 45 67' in the DB.
         // Let's do an ILIKE or a second check without '+' if needed, but for now we tell them it's not found.
         await sendMessage(
+          botToken,
           chatId, 
-          "Kechirasiz, ushbu telefon raqam bazamizda topilmadi. Iltimos klinikaga murojaat qilib raqamingiz to'g'ri kiritilganini tekshiring.",
+          "Kechirasiz, ushbu raqamga bog'langan profil topilmadi. Raqamingiz klinika ro'yxatidan o'tganiga ishonch hosil qiling.",
           { remove_keyboard: true }
         )
       }
