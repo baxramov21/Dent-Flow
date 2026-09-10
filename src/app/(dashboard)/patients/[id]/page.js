@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, FileText, Plus, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react'
+import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, FileText, Plus, ChevronDown, ChevronUp, MessageCircle, Gift } from 'lucide-react'
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
 import DentalChart from '@/components/DentalChart'
@@ -362,6 +362,32 @@ export default function PatientProfilePage() {
               <div className="card">
                 <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>So'nggi davolash</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Faol davolash yo'q.</p>
+              </div>
+              <div className="card" style={{ background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.05), transparent)' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)' }}>
+                  <Gift size={20} />
+                  Sodiqlik Dasturi (Loyalty)
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div style={{ backgroundColor: 'var(--bg-page)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Joriy daraja</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', textTransform: 'capitalize' }}>
+                      {patient.loyalty_tier || 'bronze'}
+                    </div>
+                  </div>
+                  <div style={{ backgroundColor: 'var(--bg-page)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Sodiqlik ballari</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                      {patient.loyalty_points || 0}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: '16px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ color: 'var(--text-secondary)' }}>
+                    Oilaviy chegirma: <strong style={{ color: 'var(--text-primary)' }}>{patient.family_id ? 'Faol' : "Yo'q"}</strong>
+                  </div>
+                  <button style={{ color: 'var(--accent)', fontWeight: '500', fontSize: '13px' }}>Ballarni boshqarish</button>
+                </div>
               </div>
             </div>
             

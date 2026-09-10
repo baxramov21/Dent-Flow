@@ -1,7 +1,7 @@
 'use client'
 
 import { useClinic } from '@/context/ClinicContext'
-import { Building2, Mail, Phone, MapPin, Globe, Clock, Coffee, Send, MessageCircle } from 'lucide-react'
+import { Building2, Mail, Phone, MapPin, Globe, Clock, Coffee, Send, MessageCircle, Gift } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -38,6 +38,9 @@ function SettingsPageContent() {
   const [eskizEmail, setEskizEmail] = useState('')
   const [eskizPassword, setEskizPassword] = useState('')
 
+  const [loyaltyPointValue, setLoyaltyPointValue] = useState('100')
+  const [loyaltyEarnRate, setLoyaltyEarnRate] = useState('10000')
+
   useEffect(() => {
     if (clinic) {
       setName(clinic.name || '')
@@ -57,6 +60,9 @@ function SettingsPageContent() {
       setTelegramBotToken(clinic.telegram_bot_token || '')
       setEskizEmail(clinic.eskiz_email || '')
       setEskizPassword(clinic.eskiz_password || '')
+      
+      setLoyaltyPointValue(clinic.loyalty_point_value?.toString() || '100')
+      setLoyaltyEarnRate(clinic.loyalty_earn_rate?.toString() || '10000')
     }
   }, [clinic])
 
@@ -134,6 +140,18 @@ function SettingsPageContent() {
 
     setIsSubmitting(false)
     alert("Xabarnoma sozlamalari muvaffaqiyatli saqlandi!")
+  }
+
+  const handleSaveLoyalty = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const { error } = await supabase.from('clinics').update({
+      loyalty_point_value: parseInt(loyaltyPointValue) || 100,
+      loyalty_earn_rate: parseInt(loyaltyEarnRate) || 10000
+    }).eq('id', clinic.id)
+    setIsSubmitting(false)
+    if (error) alert("Xatolik: " + error.message)
+    else alert("Sodiqlik dasturi sozlamalari saqlandi!")
   }
 
   if (isLoading) return <div>Yuklanmoqda...</div>
@@ -358,6 +376,50 @@ function SettingsPageContent() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
             <button type="submit" disabled={isSubmitting} style={{ padding: '10px 24px', backgroundColor: 'var(--accent)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: '500' }}>
               Telegram sozlamalarini saqlash
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="card">
+        <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Gift size={20} color="var(--accent)" /> Sodiqlik Dasturi (Loyalty) Sozlamalari
+        </h2>
+        
+        <form onSubmit={handleSaveLoyalty} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            Bemorlarga ballarni hisoblash va sarflash qiymatini belgilang.
+          </p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>1 Ball qadri (so'm)</label>
+              <input 
+                type="number" 
+                value={loyaltyPointValue} 
+                onChange={e => setLoyaltyPointValue(e.target.value)} 
+                placeholder="Masalan: 100" 
+                style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} 
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Bemor to'lov vaqtida 1 ball ishlatsa, qancha chegirma beriladi? Odatda: 100 so'm.</span>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>Ball ishlash normasi (so'm)</label>
+              <input 
+                type="number" 
+                value={loyaltyEarnRate} 
+                onChange={e => setLoyaltyEarnRate(e.target.value)} 
+                placeholder="Masalan: 10000" 
+                style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} 
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Necha so'm to'lagani uchun 1 ball beriladi? Odatda: 10000 so'm = 1 ball.</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+            <button type="submit" disabled={isSubmitting} style={{ padding: '10px 24px', backgroundColor: 'var(--accent)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: '500' }}>
+              Sodiqlik sozlamalarini saqlash
             </button>
           </div>
         </form>

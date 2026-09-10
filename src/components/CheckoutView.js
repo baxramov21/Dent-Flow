@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { X, DollarSign, CheckCircle } from 'lucide-react'
+import { X, DollarSign, CheckCircle, Gift } from 'lucide-react'
 
 export default function CheckoutView({ appointment, patient, clinicId, dentistId, onSuccess, onClose }) {
   const supabase = createClient()
@@ -17,6 +17,13 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
 
   const [amountPaid, setAmountPaid] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
+
+  const [availablePoints, setAvailablePoints] = useState(0)
+  const [loyaltyTier, setLoyaltyTier] = useState('bronze')
+  const [pointsToSpend, setPointsToSpend] = useState('')
+
+  const [pointValue, setPointValue] = useState(100)
+  const [earnRate, setEarnRate] = useState(10000)
 
   useEffect(() => {
     if (!appointment && !patient) return
@@ -34,6 +41,23 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
           .order('name')
           
         setClinicServices(servicesData || [])
+
+        // Fetch loyalty and clinic settings
+        try {
+          const { data: pData } = await supabase.from('patients').select('loyalty_points, loyalty_tier').eq('id', actualPatientId).single()
+          if (pData) {
+            setAvailablePoints(pData.loyalty_points || 0)
+            setLoyaltyTier(pData.loyalty_tier || 'bronze')
+          }
+          
+          const { data: cData } = await supabase.from('clinics').select('loyalty_point_value, loyalty_earn_rate').eq('id', actualClinicId).single()
+          if (cData) {
+            setPointValue(cData.loyalty_point_value || 100)
+            setEarnRate(cData.loyalty_earn_rate || 10000)
+          }
+        } catch (e) {
+          console.warn('Loyalty columns might not exist yet', e)
+        }
 
         let planId = appointment?.treatment_plan_id
         
@@ -143,9 +167,16 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
     }
   }
 
-  const totalCost = items
+  const subtotal = items
     .filter(i => i.selected)
     .reduce((sum, i) => sum + (Number(i.finalPrice) || 0), 0)
+
+  const maxPointsToSpend = Math.min(availablePoints, Math.floor(subtotal / pointValue))
+  const pts = Number(pointsToSpend) || 0
+  const appliedPoints = Math.min(pts, maxPointsToSpend)
+  const discount = appliedPoints * pointValue
+
+  const totalCost = Math.max(0, subtotal - discount)
 
   // Automatically pre-fill "Bugun to'landi" with the full total cost
   // If the user wants to log a partial payment, they can edit the input before clicking finish.
@@ -271,6 +302,41 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
         if (paymentError) throw paymentError
       }
 
+      // 5. Loyalty Points Logic
+      let loyaltyDelta = 0
+      if (appliedPoints > 0) {
+        loyaltyDelta -= appliedPoints
+        await supabase.from('loyalty_transactions').insert([{
+           clinic_id: actualClinicId,
+           patient_id: actualPatientId,
+           points: -appliedPoints,
+           reason: 'To\'lov uchun chegirma'
+        }])
+      }
+      
+      const earnedPoints = Math.floor(paidVal / earnRate)
+      if (earnedPoints > 0) {
+        loyaltyDelta += earnedPoints
+        await supabase.from('loyalty_transactions').insert([{
+           clinic_id: actualClinicId,
+           patient_id: actualPatientId,
+           points: earnedPoints,
+           reason: 'To\'lov uchun bonus'
+        }])
+      }
+
+      if (loyaltyDelta !== 0) {
+        try {
+          const { data: cur } = await supabase.from('patients').select('loyalty_points').eq('id', actualPatientId).single()
+          if (cur) {
+             const newPoints = (cur.loyalty_points || 0) + loyaltyDelta
+             await supabase.from('patients').update({ loyalty_points: newPoints }).eq('id', actualPatientId)
+          }
+        } catch (e) {
+          console.warn('Loyalty points update failed', e)
+        }
+      }
+
 
       if (onSuccess) onSuccess()
 
@@ -385,10 +451,51 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
 
             <hr style={{ borderTop: '1px solid var(--border)' }} />
 
+            {/* Sodiqlik Dasturi (Loyalty) */}
+            <div style={{ backgroundColor: 'rgba(var(--accent-rgb), 0.05)', padding: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Gift size={18} />
+                  Sodiqlik Dasturi (Chegirma)
+                </h3>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  Mavjud ballar: <strong style={{ color: 'var(--text-primary)' }}>{availablePoints}</strong> (Daraja: <span style={{textTransform: 'capitalize'}}>{loyaltyTier}</span>)
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="number"
+                    max={maxPointsToSpend}
+                    value={pointsToSpend}
+                    onChange={(e) => setPointsToSpend(e.target.value)}
+                    placeholder={`Sarflash uchun ballar (Maks: ${maxPointsToSpend})`}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none', fontSize: '14px' }}
+                    disabled={maxPointsToSpend <= 0}
+                  />
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    1 ball = {pointValue} so'm chegirma
+                  </div>
+                </div>
+                {appliedPoints > 0 && (
+                  <div style={{ padding: '10px 16px', backgroundColor: '#065F46', color: 'white', borderRadius: 'var(--radius-sm)', fontWeight: '600', fontSize: '14px' }}>
+                    - {discount.toLocaleString()} so'm
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <hr style={{ borderTop: '1px solid var(--border)' }} />
+
             {/* Totals & Payment */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Umumiy Summa (Jami)</label>
+                {discount > 0 && (
+                  <div style={{ fontSize: '14px', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                    {subtotal.toLocaleString()} so'm
+                  </div>
+                )}
                 <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{totalCost.toLocaleString()} <span style={{ fontSize: '14px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>so'm</span></div>
               </div>
 
