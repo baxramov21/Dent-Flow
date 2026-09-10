@@ -133,7 +133,7 @@ export default function HistoryPage() {
             notes,
             paid_at,
             patients(id, full_name),
-            treatment_plans!inner(id, title, dentist_id)
+            treatment_plans${selectedDentist !== 'all' ? '!inner' : ''}(id, title, dentist_id)
           `)
           .eq('clinic_id', clinic.id)
           .order('paid_at', { ascending: false })
