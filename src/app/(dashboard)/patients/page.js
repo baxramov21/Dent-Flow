@@ -7,7 +7,6 @@ import { useClinic } from '@/context/ClinicContext'
 import { Search, Plus, Calendar, Phone, User as UserIcon, Filter, Edit2, Trash2, Clock } from 'lucide-react'
 import Link from 'next/link'
 import AppointmentForm from '@/components/AppointmentForm'
-import EditPatientModal from '@/components/EditPatientModal'
 
 export default function PatientsPage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -33,7 +32,7 @@ export default function PatientsPage() {
       try {
         let query = supabase
           .from('patients')
-          .select('*, appointments(start_time, status)')
+          .select('*, appointments(start_time, status), treatment_plans(id, status, created_at, treatment_items(name, status, completed_at, price_override))')
           .eq('clinic_id', clinic.id)
 
         const { data, error } = await query
@@ -199,6 +198,7 @@ export default function PatientsPage() {
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Tug'ilgan sana</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Qo'shilgan sana</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Tashriflar holati</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Protseduralar</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600', textAlign: 'right' }}>Harakatlar</th>
               </tr>
             </thead>
@@ -261,6 +261,25 @@ export default function PatientsPage() {
                         <span style={{ fontSize: '12px' }}>Keyingi: {patient.nextVisit ? new Date(patient.nextVisit).toLocaleDateString('uz-UZ') : '—'}</span>
                       </div>
                     </td>
+                    <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {patient.treatment_plans && patient.treatment_plans.length > 0 ? (
+                          patient.treatment_plans.filter(p => p.status === 'active').map(plan => {
+                            const items = plan.treatment_items || []
+                            const total = items.length
+                            const completed = items.filter(i => i.status === 'completed').length
+                            return (
+                              <div key={plan.id} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: completed === total && total > 0 ? '#10B981' : '#F59E0B' }} />
+                                {completed}/{total} bajarildi
+                              </div>
+                            )
+                          })
+                        ) : (
+                          <span style={{ fontSize: '12px' }}>Davolash rejasi yo'q</span>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                         <button 
@@ -308,14 +327,19 @@ export default function PatientsPage() {
       )}
 
       {editingPatient && (
-        <EditPatientModal
-          patient={editingPatient}
-          onClose={() => setEditingPatient(null)}
-          onSuccess={() => {
-            setEditingPatient(null)
-            window.location.reload() // Or re-fetch patients
-          }}
-        />
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px' }}>Profilni tahrirlash</h2>
+            <AppointmentForm
+              patientToEdit={editingPatient}
+              onSuccess={() => {
+                setEditingPatient(null)
+                window.location.reload()
+              }}
+              onCancel={() => setEditingPatient(null)}
+            />
+          </div>
+        </div>
       )}
     </div>
   )

@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, FileText, Plus, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
-import EditPatientModal from '@/components/EditPatientModal'
 import DentalChart from '@/components/DentalChart'
 import AppointmentForm from '@/components/AppointmentForm'
 import { toggleTreatmentItemStatus } from '@/app/actions/finance'
@@ -655,11 +654,19 @@ export default function PatientProfilePage() {
       )}
 
       {isEditingProfile && (
-        <EditPatientModal 
-          patient={patient} 
-          onClose={() => setIsEditingProfile(false)} 
-          onSuccess={() => { setIsEditingProfile(false); fetchPatientData(); }} 
-        />
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px' }}>Profilni tahrirlash</h2>
+            <AppointmentForm
+              patientToEdit={patient}
+              onSuccess={() => {
+                setIsEditingProfile(false)
+                window.location.reload()
+              }}
+              onCancel={() => setIsEditingProfile(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   )

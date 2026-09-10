@@ -9,7 +9,7 @@ import uz from 'date-fns/locale/uz'
 
 registerLocale('uz', uz)
 
-export default function AppointmentForm({ initialData = null, onSuccess, onCancel, defaultIsNewPatient = false }) {
+export default function AppointmentForm({ initialData = null, patientToEdit = null, onSuccess, onCancel, defaultIsNewPatient = false }) {
   const { clinic } = useClinic()
   const supabase = createClient()
   
@@ -31,14 +31,14 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
   })
 
   // New Patient State
-  const [isNewPatient, setIsNewPatient] = useState(defaultIsNewPatient)
+  const [isNewPatient, setIsNewPatient] = useState(defaultIsNewPatient || !!patientToEdit)
   const [scheduleAppointment, setScheduleAppointment] = useState(true)
   const [newPatientData, setNewPatientData] = useState({
-    full_name: '',
-    phone: '+998-',
-    date_of_birth: '',
-    gender: 'male',
-    address: '',
+    full_name: patientToEdit?.full_name || '',
+    phone: patientToEdit?.phone || '+998-',
+    date_of_birth: patientToEdit?.date_of_birth || '',
+    gender: patientToEdit?.gender || 'male',
+    address: patientToEdit?.address || '',
     condition: ''
   })
 
@@ -246,25 +246,40 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         if (!newPatientData.full_name.trim()) throw new Error("Bemor ismini kiriting")
         if (newPatientData.phone.length < 17) throw new Error("Telefon raqamini to'liq kiriting (+998-xx-xxx-xx-xx)")
         if (!newPatientData.date_of_birth) throw new Error("Tug'ilgan sanani kiriting")
-        if (!newPatientData.address.trim()) throw new Error("Manzilni kiriting")
-        if (!newPatientData.condition.trim()) throw new Error("Kasalliklarni kiriting (yo'q bo'lsa 'Yo'q' deb yozing)")
         
-        // 1. Create Patient
-        const { data: newPat, error: patError } = await supabase
-          .from('patients')
-          .insert([{
-            clinic_id: clinic.id,
-            full_name: newPatientData.full_name,
-            phone: newPatientData.phone,
-            date_of_birth: newPatientData.date_of_birth || null,
-            gender: newPatientData.gender,
-            address: newPatientData.address || null
-          }])
-          .select()
-          .single()
-          
-        if (patError) throw patError
-        finalPatientId = newPat.id
+        if (patientToEdit) {
+          // Update existing patient
+          const { error: patError } = await supabase
+            .from('patients')
+            .update({
+              full_name: newPatientData.full_name,
+              phone: newPatientData.phone,
+              date_of_birth: newPatientData.date_of_birth || null,
+              gender: newPatientData.gender,
+              address: newPatientData.address || null
+            })
+            .eq('id', patientToEdit.id)
+            
+          if (patError) throw patError
+          finalPatientId = patientToEdit.id
+        } else {
+          // 1. Create Patient
+          const { data: newPat, error: patError } = await supabase
+            .from('patients')
+            .insert([{
+              clinic_id: clinic.id,
+              full_name: newPatientData.full_name,
+              phone: newPatientData.phone,
+              date_of_birth: newPatientData.date_of_birth || null,
+              gender: newPatientData.gender,
+              address: newPatientData.address || null
+            }])
+            .select()
+            .single()
+            
+          if (patError) throw patError
+          finalPatientId = newPat.id
+        }
 
         // 1.5 Add Medical History if provided
         if (newPatientData.condition.trim() && newPatientData.condition.trim().toLowerCase() !== "yo'q") {
@@ -276,7 +291,7 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         }
 
         if (!scheduleAppointment) {
-          onSuccess(newPat)
+          onSuccess()
           return
         }
 
@@ -402,8 +417,8 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         </div>
       )}
 
-      {/* Segmented Control for Patient Type - Only show when creating NEW appointment */}
-      {!initialData?.id && (
+      {/* Segmented Control for Patient Type - Only show when creating NEW appointment and not editing a patient */}
+      {!initialData?.id && !patientToEdit && (
         <div style={{ display: 'flex', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '4px' }}>
           <button 
             type="button"
