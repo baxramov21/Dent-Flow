@@ -6,7 +6,7 @@ import { useClinic } from '@/context/ClinicContext'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 
-export default function AppointmentForm({ initialData = null, onSuccess, onCancel }) {
+export default function AppointmentForm({ initialData = null, onSuccess, onCancel, defaultIsNewPatient = false }) {
   const { clinic } = useClinic()
   const supabase = createClient()
   
@@ -28,7 +28,8 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
   })
 
   // New Patient State
-  const [isNewPatient, setIsNewPatient] = useState(false)
+  const [isNewPatient, setIsNewPatient] = useState(defaultIsNewPatient)
+  const [scheduleAppointment, setScheduleAppointment] = useState(true)
   const [newPatientData, setNewPatientData] = useState({
     full_name: '',
     phone: '+998-',
@@ -263,12 +264,17 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         finalPatientId = newPat.id
 
         // 1.5 Add Medical History if provided
-        if (newPatientData.condition.trim()) {
+        if (newPatientData.condition.trim() && newPatientData.condition.trim().toLowerCase() !== "yo'q") {
            await supabase.from('medical_history').insert([{
              clinic_id: clinic.id,
              patient_id: finalPatientId,
              condition: newPatientData.condition
            }])
+        }
+
+        if (!scheduleAppointment) {
+          onSuccess(newPat)
+          return
         }
 
         // 2. Create Active Treatment Plan for them
@@ -564,7 +570,23 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
         </>
       )}
 
-      <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Muolajalar (Xizmatlar)</h3>
+      {isNewPatient && (
+        <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input 
+              type="checkbox" 
+              checked={scheduleAppointment} 
+              onChange={(e) => setScheduleAppointment(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
+            />
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>Bemor uchun yangi qabul belgilash</span>
+          </label>
+        </div>
+      )}
+
+      {(scheduleAppointment || !isNewPatient) && (
+        <>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '-8px' }}>Muolajalar (Xizmatlar)</h3>
     
            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
          {Object.entries(
@@ -720,13 +742,15 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
           style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', resize: 'vertical' }}
         />
       </div>
+      </>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
         <button type="button" onClick={onCancel} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', fontWeight: '500', color: 'var(--text-secondary)' }}>
           Bekor qilish
         </button>
         <button type="submit" disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: 'none', backgroundColor: 'var(--accent)', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: '500', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'Saqlanmoqda...' : (initialData?.id ? 'O\'zgarishlarni saqlash' : 'Qabulga yozish')}
+          {loading ? 'Saqlanmoqda...' : (isNewPatient && !scheduleAppointment ? 'Bemorni saqlash' : (initialData?.id ? 'O\'zgarishlarni saqlash' : 'Qabulga yozish'))}
         </button>
       </div>
     </form>

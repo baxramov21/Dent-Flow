@@ -6,24 +6,17 @@ import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
-import { Search, Plus, Calendar, Phone, User as UserIcon, Filter, Edit2, Trash2 } from 'lucide-react'
+import { Search, Plus, Calendar, Phone, User as UserIcon, Filter, Edit2, Trash2, Clock } from 'lucide-react'
 import Link from 'next/link'
+import AppointmentForm from '@/components/AppointmentForm'
+import EditPatientModal from '@/components/EditPatientModal'
 
 export default function PatientsPage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
   const [patients, setPatients] = useState([])
   const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingPatientId, setEditingPatientId] = useState(null)
-  
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '+998-',
-    date_of_birth: '',
-    gender: 'male',
-    address: '',
-    notes: ''
-  })
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+  const [editingPatient, setEditingPatient] = useState(null)
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -42,13 +35,25 @@ export default function PatientsPage() {
       try {
         let query = supabase
           .from('patients')
-          .select('*')
+          .select('*, appointments(start_time, status)')
           .eq('clinic_id', clinic.id)
 
         const { data, error } = await query
 
         if (error) throw error
-        setPatients(data || [])
+        
+        // Compute last/next visits
+        const enhancedData = (data || []).map(patient => {
+          const completed = (patient.appointments || []).filter(a => a.status === 'completed').sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
+          const future = (patient.appointments || []).filter(a => ['scheduled', 'confirmed', 'in_progress'].includes(a.status)).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+          return {
+            ...patient,
+            lastVisit: completed.length > 0 ? completed[0].start_time : null,
+            nextVisit: future.length > 0 ? future[0].start_time : null
+          }
+        })
+        
+        setPatients(enhancedData)
       } catch (error) {
         console.error('Bemorlarni yuklashda xatolik:', error)
       } finally {
@@ -57,46 +62,6 @@ export default function PatientsPage() {
     }
     fetchPatients()
   }, [clinic, clinicLoading])
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    if (name === 'phone') {
-      let rawValue = value
-      if (!rawValue.startsWith('+998-') && rawValue.includes('+998-')) {
-         rawValue = rawValue.substring(rawValue.indexOf('+998-'))
-      }
-      let digits = rawValue.replace(/\D/g, '')
-      if (digits.startsWith('998')) digits = digits.substring(3)
-      digits = digits.substring(0, 9)
-      let formatted = '+998-'
-      if (digits.length > 0) formatted += digits.substring(0, 2)
-      if (digits.length > 2) formatted += '-' + digits.substring(2, 5)
-      if (digits.length > 5) formatted += '-' + digits.substring(5, 7)
-      if (digits.length > 7) formatted += '-' + digits.substring(7, 9)
-      setFormData(prev => ({ ...prev, [name]: formatted }))
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
-    }
-  }
-
-  const closeModal = () => {
-    setIsModalOpen(false)
-    setEditingPatientId(null)
-    setFormData({ full_name: '', phone: '+998-', date_of_birth: '', gender: 'male', address: '', notes: '' })
-  }
-
-  const handleEdit = (patient) => {
-    setFormData({
-      full_name: patient.full_name,
-      phone: patient.phone,
-      date_of_birth: patient.date_of_birth || '',
-      gender: patient.gender || 'male',
-      address: patient.address || '',
-      notes: patient.notes || ''
-    })
-    setEditingPatientId(patient.id)
-    setIsModalOpen(true)
-  }
 
   const handleDelete = async (id) => {
     if (!confirm("Haqiqatan ham bu bemorni o'chirmoqchimisiz? (Barcha tarixi o'chib ketadi)")) return
@@ -167,11 +132,7 @@ export default function PatientsPage() {
           <p style={{ color: 'var(--text-secondary)' }}>Klinika bemorlari ro'yxati (Jami: {patients.length})</p>
         </div>
         <button 
-          onClick={() => {
-            setEditingPatientId(null)
-            setFormData({ full_name: '', phone: '+998-', date_of_birth: '', gender: 'male', address: '', notes: '' })
-            setIsModalOpen(true)
-          }}
+          onClick={() => setIsAppointmentModalOpen(true)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -238,6 +199,8 @@ export default function PatientsPage() {
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Bemor F.I.O</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Telefon raqam</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Tug'ilgan sana</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Qo'shilgan sana</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Tashriflar holati</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600', textAlign: 'right' }}>Harakatlar</th>
               </tr>
             </thead>
@@ -288,6 +251,18 @@ export default function PatientsPage() {
                         {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString('uz-UZ') : '—'}
                       </div>
                     </td>
+                    <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Calendar size={14} />
+                        {new Date(patient.created_at).toLocaleDateString('uz-UZ')}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '12px' }}>Oxirgi: {patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString('uz-UZ') : '—'}</span>
+                        <span style={{ fontSize: '12px' }}>Keyingi: {patient.nextVisit ? new Date(patient.nextVisit).toLocaleDateString('uz-UZ') : '—'}</span>
+                      </div>
+                    </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                         <button 
@@ -297,7 +272,7 @@ export default function PatientsPage() {
                           Profil
                         </button>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); handleEdit(patient); }} 
+                          onClick={(e) => { e.stopPropagation(); setEditingPatient(patient); }} 
                           style={{ padding: '6px', borderRadius: '4px', border: 'none', backgroundColor: '#DBEAFE', color: '#1E40AF', cursor: 'pointer' }}
                         >
                           <Edit2 size={16} />
@@ -318,73 +293,31 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      {isModalOpen && (
+      {isAppointmentModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px' }}>{editingPatientId ? 'Bemorni tahrirlash' : 'Yangi bemor qo\'shish'}</h2>
-            
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: '500' }}>F.I.O *</label>
-                  <input type="text" name="full_name" required value={formData.full_name} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }} />
-                </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Telefon raqam *</label>
-                  <input type="tel" name="phone" required minLength={17} maxLength={17} value={formData.phone} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Tug'ilgan sana</label>
-                  <DatePicker
-                    selected={formData.date_of_birth ? new Date(formData.date_of_birth) : null}
-                    onChange={(date) => {
-                      const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                      setFormData(prev => ({ ...prev, date_of_birth: formattedDate }));
-                    }}
-                    dateFormat="dd.MM.yyyy"
-                    placeholderText="dd.mm.yyyy"
-                    showYearDropdown
-                    showMonthDropdown
-                    dropdownMode="select"
-                    isClearable
-                    customInput={<input style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none', width: '100%', boxSizing: 'border-box', backgroundColor: 'var(--bg-card)' }} />}
-                  />
-                </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Jinsi</label>
-                  <select name="gender" value={formData.gender} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }}>
-                    <option value="male">Erkak</option>
-                    <option value="female">Ayol</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Manzili</label>
-                <input type="text" name="address" value={formData.address} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }} />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Qo'shimcha ma'lumotlar</label>
-                <textarea name="notes" rows={3} value={formData.notes} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none', resize: 'vertical' }} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-                <button type="button" onClick={closeModal} style={{ padding: '10px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: 'pointer', backgroundColor: 'transparent' }}>
-                  Bekor qilish
-                </button>
-                <button type="submit" style={{ padding: '10px 16px', backgroundColor: 'var(--accent)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: 'pointer' }}>
-                  {editingPatientId ? 'Yangilash' : 'Saqlash'}
-                </button>
-              </div>
-            </form>
+          <div className="card" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px' }}>Yangi bemor qo'shish</h2>
+            <AppointmentForm
+               defaultIsNewPatient={true}
+               onSuccess={() => {
+                 setIsAppointmentModalOpen(false)
+                 window.location.reload() // Or re-fetch patients
+               }}
+               onCancel={() => setIsAppointmentModalOpen(false)}
+            />
           </div>
         </div>
+      )}
+
+      {editingPatient && (
+        <EditPatientModal
+          patient={editingPatient}
+          onClose={() => setEditingPatient(null)}
+          onSuccess={() => {
+            setEditingPatient(null)
+            window.location.reload() // Or re-fetch patients
+          }}
+        />
       )}
     </div>
   )

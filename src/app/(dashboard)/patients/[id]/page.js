@@ -249,6 +249,12 @@ export default function PatientProfilePage() {
   if (loading || clinicLoading) return <div>Yuklanmoqda...</div>
   if (!patient) return <div>Bemor topilmadi</div>
 
+  const completed = patientAppointments.filter(a => a.status === 'completed').sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
+  const lastVisit = completed.length > 0 ? completed[0].start_time : null
+
+  const future = patientAppointments.filter(a => ['scheduled', 'confirmed', 'in_progress'].includes(a.status)).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+  const nextVisit = future.length > 0 ? future[0].start_time : null
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -293,6 +299,18 @@ export default function PatientProfilePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '14px' }}>
               <MapPin size={16} /> {patient.address || "Manzil ko'rsatilmagan"}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '16px', borderLeft: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+              <span style={{ fontWeight: '500' }}>Qo'shilgan:</span> {new Date(patient.created_at).toLocaleDateString('uz-UZ')}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+              <span style={{ fontWeight: '500' }}>Oxirgi tashrif:</span> {lastVisit ? new Date(lastVisit).toLocaleDateString('uz-UZ') : '—'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+              <span style={{ fontWeight: '500' }}>Keyingi tashrif:</span> {nextVisit ? new Date(nextVisit).toLocaleDateString('uz-UZ') : '—'}
             </div>
           </div>
         </div>
