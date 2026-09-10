@@ -104,7 +104,7 @@ export default function FinancesPage() {
   // Prepare chart data
   const chartData = doctors.map(doc => ({
     name: doc.full_name.split(' ')[0],
-    Tozlanmagan: doc.unpaid,
+    Tolanmagan: doc.unpaid,
     Tolangan: doc.paid
   }))
 
@@ -216,7 +216,7 @@ export default function FinancesPage() {
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
                   <Tooltip cursor={{ fill: 'var(--bg-hover)' }} contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
                   <Bar dataKey="Tolangan" stackId="a" fill="#10B981" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="Tozlanmagan" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Tolanmagan" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
