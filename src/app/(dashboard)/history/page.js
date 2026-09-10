@@ -532,6 +532,7 @@ export default function HistoryPage() {
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontSize: '13px', textTransform: 'uppercase' }}>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Bemor</th>
+                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Shifokor</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Jami hisoblangan</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>To'langan</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Qolgan Qarz</th>
@@ -540,12 +541,13 @@ export default function HistoryPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
               ) : filteredDebtors.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Qarzdor bemorlar yo'q</td></tr>
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Qarzdor bemorlar yo'q</td></tr>
               ) : (
                 filteredDebtors.map(d => {
                   const isExpanded = expandedDebtorId === d.patient.id;
+                  const doctors = [...new Set(d.procedures.map(p => p.treatment_plans?.staff?.full_name).filter(Boolean))].join(', ');
                   return (
                     <React.Fragment key={d.patient.id}>
                       <tr 
@@ -560,6 +562,9 @@ export default function HistoryPage() {
                             </span>
                             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{d.patient.phone}</span>
                           </div>
+                        </td>
+                        <td style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                          {doctors || 'Noma\'lum'}
                         </td>
                         <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
                           {d.totalBilled.toLocaleString()} UZS
@@ -586,7 +591,7 @@ export default function HistoryPage() {
                       </tr>
                       {isExpanded && (
                         <tr style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
-                          <td colSpan={5} style={{ padding: '24px' }}>
+                          <td colSpan={6} style={{ padding: '24px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                               {/* Left column: Procedures */}
                               <div style={{ backgroundColor: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
