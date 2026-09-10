@@ -17,10 +17,11 @@ export async function GET(req) {
   }
 
   try {
-    // 2. Calculate time window (Appointments starting between 23 and 25 hours from now)
+    // 2. Calculate time window (Appointments starting anytime tomorrow)
     const now = new Date()
-    const tomorrowStart = new Date(now.getTime() + 23 * 60 * 60 * 1000).toISOString()
-    const tomorrowEnd = new Date(now.getTime() + 25 * 60 * 60 * 1000).toISOString()
+    // Start of tomorrow (in local time ideally, but UTC is fine since we add 24h roughly)
+    const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0).toISOString()
+    const tomorrowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59).toISOString()
 
     // 3. Fetch appointments
     const { data: appointments, error } = await supabaseAdmin
