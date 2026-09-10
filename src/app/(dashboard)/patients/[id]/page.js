@@ -243,6 +243,22 @@ export default function PatientProfilePage() {
   const future = patientAppointments.filter(a => ['scheduled', 'confirmed', 'in_progress'].includes(a.status)).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
   const nextVisit = future.length > 0 ? future[0].start_time : null
 
+  const completedProcedures = []
+  treatmentPlans.forEach(plan => {
+    if (plan.items) {
+      plan.items.forEach(item => {
+        if (item.status === 'completed') {
+          completedProcedures.push({
+            ...item,
+            planTitle: plan.title,
+            dentistName: plan.dentist?.full_name
+          })
+        }
+      })
+    }
+  })
+  completedProcedures.sort((a, b) => new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at))
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -452,6 +468,35 @@ export default function PatientProfilePage() {
                 ))}
               </div>
             )}
+
+            <div style={{ marginTop: '40px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '24px' }}>Bajarilgan muolajalar</h3>
+              {completedProcedures.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>Bajarilgan muolajalar yo'q.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {completedProcedures.map(proc => (
+                    <div key={proc.id} style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <h4 style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {proc.service?.name_uz || proc.service?.name} 
+                          {proc.tooth_number ? ` (Tish: ${proc.tooth_number})` : ''}
+                        </h4>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          {new Date(proc.completed_at || proc.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', gap: '16px' }}>
+                        <span>Shifokor: {proc.dentistName || 'Noma\'lum'}</span>
+                        <span>Reja: {proc.planTitle || 'Noma\'lum'}</span>
+                        <span>Narxi: {proc.price_override?.toLocaleString()} so'm</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
