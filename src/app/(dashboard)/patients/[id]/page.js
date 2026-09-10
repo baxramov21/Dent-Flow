@@ -237,11 +237,14 @@ export default function PatientProfilePage() {
   if (loading || clinicLoading) return <div>Yuklanmoqda...</div>
   if (!patient) return <div>Bemor topilmadi</div>
 
-  const completed = patientAppointments.filter(a => a.status === 'completed').sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
-  const lastVisit = completed.length > 0 ? completed[0].start_time : null
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const future = patientAppointments.filter(a => ['scheduled', 'confirmed', 'in_progress'].includes(a.status)).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
-  const nextVisit = future.length > 0 ? future[0].start_time : null
+  const pastApps = patientAppointments.filter(a => a.status === 'completed' || new Date(a.start_time) < startOfToday).sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
+  const lastVisit = pastApps.length > 0 ? pastApps[0].start_time : null
+
+  const futureApps = patientAppointments.filter(a => a.status !== 'completed' && new Date(a.start_time) >= startOfToday).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+  const nextVisit = futureApps.length > 0 ? futureApps[0].start_time : null
 
   const completedProcedures = []
   treatmentPlans.forEach(plan => {

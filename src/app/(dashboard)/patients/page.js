@@ -41,12 +41,16 @@ export default function PatientsPage() {
         
         // Compute last/next visits
         const enhancedData = (data || []).map(patient => {
-          const completed = (patient.appointments || []).filter(a => a.status === 'completed').sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
-          const future = (patient.appointments || []).filter(a => ['scheduled', 'confirmed', 'in_progress'].includes(a.status)).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+          const now = new Date();
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          const pastApps = (patient.appointments || []).filter(a => a.status === 'completed' || new Date(a.start_time) < startOfToday).sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
+          const futureApps = (patient.appointments || []).filter(a => a.status !== 'completed' && new Date(a.start_time) >= startOfToday).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+          
           return {
             ...patient,
-            lastVisit: completed.length > 0 ? completed[0].start_time : null,
-            nextVisit: future.length > 0 ? future[0].start_time : null
+            lastVisit: pastApps.length > 0 ? pastApps[0].start_time : null,
+            nextVisit: futureApps.length > 0 ? futureApps[0].start_time : null
           }
         })
         
