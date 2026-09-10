@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, FileText, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, FileText, Plus, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
 import EditPatientModal from '@/components/EditPatientModal'
@@ -280,6 +280,16 @@ export default function PatientProfilePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '14px' }}>
               <Phone size={16} /> {patient.phone}
             </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+              <MessageCircle size={16} color={patient.telegram_chat_id ? "#10B981" : "var(--text-muted)"} />
+              {patient.telegram_chat_id ? (
+                <span style={{ color: '#10B981', fontWeight: '500' }}>Telegram Ulangan</span>
+              ) : (
+                <span style={{ color: 'var(--text-muted)' }}>Telegram Ulanmagan</span>
+              )}
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '14px' }}>
               <Calendar size={16} /> {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '—'}
             </div>
