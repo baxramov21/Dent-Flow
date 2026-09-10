@@ -21,6 +21,7 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
   // Data for dropdowns
   const [patients, setPatients] = useState([])
   const [dentists, setDentists] = useState([])
+  const [uniqueAddresses, setUniqueAddresses] = useState([])
   
   // Form State
   const [formData, setFormData] = useState({
@@ -61,7 +62,7 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
     async function loadDropdownData() {
       try {
         const [patientsRes, staffRes, servicesRes] = await Promise.all([
-          supabase.from('patients').select('id, full_name').eq('clinic_id', clinic.id).order('full_name'),
+          supabase.from('patients').select('id, full_name, address').eq('clinic_id', clinic.id).order('full_name'),
           supabase.from('staff').select('id, full_name, specialization').eq('clinic_id', clinic.id).eq('role', 'dentist'),
           supabase.from('services').select('id, name, price, category').eq('clinic_id', clinic.id).eq('is_active', true).order('name')
         ])
@@ -73,6 +74,9 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
         setPatients(patientsRes.data || [])
         setDentists(staffRes.data || [])
         setServices(servicesRes.data || [])
+
+        const unique = [...new Set((patientsRes.data || []).map(p => p.address).filter(Boolean))]
+        setUniqueAddresses(unique)
 
         // Set defaults if available
         if (staffRes.data && staffRes.data.length > 0) {
@@ -581,12 +585,18 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
               <input
                 type="text"
                 name="address"
+                list="address-suggestions-modal"
                 placeholder="Yashash manzili"
                 required={isNewPatient}
                 value={newPatientData.address}
                 onChange={handleNewPatientChange}
                 style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
               />
+              <datalist id="address-suggestions-modal">
+                {uniqueAddresses.map(addr => (
+                  <option key={addr} value={addr} />
+                ))}
+              </datalist>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

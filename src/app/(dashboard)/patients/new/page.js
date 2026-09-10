@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
@@ -14,6 +14,7 @@ export default function AddPatientPage() {
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [uniqueAddresses, setUniqueAddresses] = useState([])
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -28,6 +29,19 @@ export default function AddPatientPage() {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
+
+
+  useEffect(() => {
+    if (!clinic) return
+    async function fetchAddresses() {
+      const { data } = await supabase.from('patients').select('address').eq('clinic_id', clinic.id).not('address', 'is', null)
+      if (data) {
+        const unique = [...new Set(data.map(p => p.address).filter(Boolean))]
+        setUniqueAddresses(unique)
+      }
+    }
+    fetchAddresses()
+  }, [clinic])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -152,11 +166,17 @@ export default function AddPatientPage() {
               id="address"
               name="address"
               type="text"
+              list="address-suggestions"
               value={formData.address}
               onChange={handleChange}
               placeholder="Tashkent, Yunusabad..."
               style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none' }}
             />
+            <datalist id="address-suggestions">
+              {uniqueAddresses.map(addr => (
+                <option key={addr} value={addr} />
+              ))}
+            </datalist>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
