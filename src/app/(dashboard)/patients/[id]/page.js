@@ -423,7 +423,7 @@ export default function PatientProfilePage() {
                     ))}
                   </ul>
                 ) : (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Tibbiy ogohlantirishlar yo'q.</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Yo'q</p>
                 )}
               </div>
             </div>

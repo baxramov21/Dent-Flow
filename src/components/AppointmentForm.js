@@ -542,12 +542,11 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '500' }}>Tibbiy holati / Kasalliklari *</label>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>Tibbiy holati / Kasalliklari</label>
               <input
                 type="text"
                 name="condition"
-                placeholder="Allergiyalar, surunkali kasalliklar (yo'q bo'lsa 'Yo'q')..."
-                required={isNewPatient}
+                placeholder="Allergiyalar, surunkali kasalliklar (bo'sh qoldirilsa 'Yo'q' deb olinadi)..."
                 value={newPatientData.condition}
                 onChange={handleNewPatientChange}
                 style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
