@@ -24,6 +24,8 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
 
   const [pointValue, setPointValue] = useState(100)
   const [earnRate, setEarnRate] = useState(10000)
+  
+  const [doctorCommissionRate, setDoctorCommissionRate] = useState(0)
 
   useEffect(() => {
     if (!appointment && !patient) return
@@ -35,7 +37,7 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
       try {
         const { data: servicesData } = await supabase
           .from('services')
-          .select('id, name, price, category')
+          .select('id, name, price, category, commission_rate')
           .eq('clinic_id', actualClinicId)
           .eq('is_active', true)
           .order('name')
@@ -57,6 +59,14 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
           }
         } catch (e) {
           console.warn('Loyalty columns might not exist yet', e)
+        }
+
+        const actualDentistId = appointment ? appointment.dentist_id : dentistId
+        if (actualDentistId) {
+          try {
+            const { data: docData } = await supabase.from('staff').select('default_commission_rate').eq('id', actualDentistId).single()
+            if (docData) setDoctorCommissionRate(docData.default_commission_rate || 0)
+          } catch(e) {}
         }
 
         let planId = appointment?.treatment_plan_id
@@ -85,7 +95,7 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
 
         const { data, error } = await supabase
           .from('treatment_items')
-          .select('id, service_id, price_override, status, services(name, price)')
+          .select('id, service_id, price_override, status, services(name, price, commission_rate)')
           .eq('treatment_plan_id', planId)
           .in('status', ['planned', 'in_progress', 'completed'])
 
@@ -159,7 +169,7 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
          price_override: data.price,
          finalPrice: data.price,
          status: 'planned',
-         services: { name: data.name },
+         services: { name: data.name, commission_rate: null },
          selected: true,
          isNew: true
        }
@@ -245,8 +255,10 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
       // 1. Update treatment items
       if (selectedItems.length > 0) {
         for (const item of selectedItems) {
+          let createdItemId = item.id;
+          
           if (item.isNew) {
-            await supabase
+            const { data: insertedItem } = await supabase
               .from('treatment_items')
               .insert({
                 clinic_id: actualClinicId,
@@ -256,6 +268,12 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
                 price_override: item.finalPrice,
                 completed_at: new Date().toISOString()
               })
+              .select('id')
+              .single()
+              
+            if (insertedItem) {
+              createdItemId = insertedItem.id
+            }
           } else {
             await supabase
               .from('treatment_items')
@@ -265,6 +283,21 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
                 completed_at: new Date().toISOString()
               })
               .eq('id', item.id)
+          }
+          
+          // Calculate and insert commission
+          const serviceRate = item.services?.commission_rate
+          const appliedRate = (serviceRate !== null && serviceRate !== undefined) ? serviceRate : doctorCommissionRate
+          const commissionAmount = Math.floor(item.finalPrice * (appliedRate / 100))
+          
+          if (commissionAmount > 0) {
+            await supabase.from('doctor_commissions').upsert({
+              clinic_id: actualClinicId,
+              dentist_id: actualDentistId,
+              treatment_item_id: createdItemId,
+              amount: commissionAmount,
+              status: 'unpaid'
+            }, { onConflict: 'treatment_item_id' })
           }
         }
       }
