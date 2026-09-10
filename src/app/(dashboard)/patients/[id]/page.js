@@ -8,6 +8,9 @@ import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
 import EditPatientModal from '@/components/EditPatientModal'
 import DentalChart from '@/components/DentalChart'
+import { getInitials } from '@/utils/helpers'
+import AppointmentForm from '@/components/AppointmentForm'
+import { toggleTreatmentItemStatus } from '@/app/actions/finance'
 
 export default function PatientProfilePage() {
   const { id } = useParams()
@@ -220,24 +223,11 @@ export default function PatientProfilePage() {
 
   const handleToggleItemStatus = async (item) => {
     try {
-      const newStatus = item.status === 'completed' ? 'planned' : 'completed'
-      
-      const updateData = { status: newStatus }
-      if (newStatus === 'completed') {
-        updateData.completed_at = new Date().toISOString()
-      } else {
-        updateData.completed_at = null
-      }
-
-      const { error } = await supabase
-        .from('treatment_items')
-        .update(updateData)
-        .eq('id', item.id)
-      
-      if (error) throw error
+      const result = await toggleTreatmentItemStatus(item.id, item.status)
+      if (result.error) throw new Error(result.error)
       await fetchPlans()
     } catch (err) {
-      alert("Holatni o'zgartirishda xatolik")
+      alert("Holatni o'zgartirishda xatolik: " + err.message)
     }
   }
 

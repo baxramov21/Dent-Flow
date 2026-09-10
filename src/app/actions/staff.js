@@ -19,6 +19,7 @@ export async function createStaffMember(clinicId, formData) {
     const role = formData.get('role') // 'admin', 'dentist', 'receptionist'
     const phone = formData.get('phone')
     const specialization = formData.get('specialization')
+    const commission = formData.get('default_commission_rate')
 
     // Insert into the public.staff table directly without an auth user
     const { error: staffError } = await supabaseAdmin
@@ -29,6 +30,7 @@ export async function createStaffMember(clinicId, formData) {
         role: role,
         specialization: specialization || null,
         phone: phone || null,
+        default_commission_rate: commission ? parseInt(commission) : 0,
         is_active: true
       }])
 
@@ -51,6 +53,7 @@ export async function updateStaffMember(staffId, formData) {
     const phone = formData.get('phone')
     const specialization = formData.get('specialization')
     const is_active = formData.get('is_active') === 'true'
+    const commission = formData.get('default_commission_rate')
 
     const { error: staffError } = await supabaseAdmin
       .from('staff')
@@ -59,6 +62,7 @@ export async function updateStaffMember(staffId, formData) {
         role: role,
         specialization: specialization || null,
         phone: phone || null,
+        default_commission_rate: commission ? parseInt(commission) : 0,
         is_active: is_active
       })
       .eq('id', staffId)

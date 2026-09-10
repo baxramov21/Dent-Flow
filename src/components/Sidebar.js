@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Calendar, ClipboardList, BriefcaseMedical, Settings, Clock, History, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, ClipboardList, BriefcaseMedical, Settings, Clock, History, Sparkles, PieChart } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 
 export default function Sidebar() {
@@ -18,6 +18,7 @@ export default function Sidebar() {
   const managementLinks = [
     ...(permissions?.canManageServices ? [{ href: '/services', label: 'Xizmatlar', icon: BriefcaseMedical }] : []),
     { href: '/history', label: 'Tarix', icon: History },
+    ...(permissions?.canManageStaff ? [{ href: '/finances', label: 'Moliya', icon: PieChart }] : []),
     ...(permissions?.canManageStaff ? [{ href: '/staff', label: 'Xodimlar', icon: ClipboardList }] : []),
   ]
 

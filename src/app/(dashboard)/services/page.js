@@ -24,6 +24,7 @@ export default function ServicesPage() {
     category: '',
     price: '',
     duration_minutes: 30,
+    commission_rate: '',
     is_active: true
   })
 
@@ -78,7 +79,7 @@ export default function ServicesPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingServiceId(null)
-    setFormData({ name_uz: '', category: '', price: '', duration_minutes: 30, is_active: true })
+    setFormData({ name_uz: '', category: '', price: '', duration_minutes: 30, commission_rate: '', is_active: true })
   }
 
   const handleEdit = (srv) => {
@@ -87,6 +88,7 @@ export default function ServicesPage() {
       category: srv.category || '',
       price: srv.price,
       duration_minutes: srv.duration_minutes || 30,
+      commission_rate: srv.commission_rate || '',
       is_active: srv.is_active
     })
     setEditingServiceId(srv.id)
@@ -117,6 +119,7 @@ export default function ServicesPage() {
             category: formData.category || 'Umumiy',
             price: parseInt(formData.price),
             duration_minutes: parseInt(formData.duration_minutes),
+            commission_rate: formData.commission_rate ? parseInt(formData.commission_rate) : null,
             is_active: formData.is_active
           })
           .eq('id', editingServiceId)
@@ -131,6 +134,7 @@ export default function ServicesPage() {
             category: formData.category || 'Umumiy',
             price: parseInt(formData.price),
             duration_minutes: parseInt(formData.duration_minutes),
+            commission_rate: formData.commission_rate ? parseInt(formData.commission_rate) : null,
             is_active: formData.is_active
           }])
         if (error) throw error
@@ -240,6 +244,7 @@ export default function ServicesPage() {
                 <tr style={{ color: 'var(--text-secondary)', fontSize: '13px', textTransform: 'uppercase', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-hover)' }}>
                   <th style={{ padding: '16px 24px', fontWeight: '600' }}>Xizmat nomi</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600' }}>Narxi (UZS)</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600' }}>Komissiya</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600' }}>Davomiyligi</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600' }}>Foydalanish / Daromad</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600' }}>Holati</th>
@@ -261,6 +266,7 @@ export default function ServicesPage() {
                         </div>
                       </td>
                       <td style={{ padding: '16px 24px', fontWeight: '600', color: 'var(--text-primary)' }}>{srv.price?.toLocaleString()} so'm</td>
+                      <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>{srv.commission_rate ? `${srv.commission_rate}%` : '—'}</td>
                       <td style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontSize: '14px' }}>{srv.duration_minutes} daq</td>
                       <td style={{ padding: '16px 24px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -320,6 +326,12 @@ export default function ServicesPage() {
                   <label style={{ fontSize: '14px', fontWeight: '500' }}>Narxi (so'm) *</label>
                   <input type="number" name="price" required min="0" value={formData.price} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }} />
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Maxsus komissiya (%)</label>
+                  <input type="number" name="commission_rate" min="0" max="100" placeholder="Shifokor standartini chetlab o'tish" value={formData.commission_rate} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={{ fontSize: '14px', fontWeight: '500' }}>Davomiyligi (daqiqa) *</label>
                   <input type="number" name="duration_minutes" required min="5" value={formData.duration_minutes} onChange={handleChange} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }} />

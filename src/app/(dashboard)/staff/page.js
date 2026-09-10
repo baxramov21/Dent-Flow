@@ -153,6 +153,7 @@ function StaffPageContent() {
               <th style={{ padding: '16px 24px', fontWeight: '600' }}>Xodim</th>
               <th style={{ padding: '16px 24px', fontWeight: '600' }}>Lavozimi</th>
               <th style={{ padding: '16px 24px', fontWeight: '600' }}>Telefon</th>
+              <th style={{ padding: '16px 24px', fontWeight: '600' }}>Komissiya (%)</th>
               <th style={{ padding: '16px 24px', fontWeight: '600' }}>Holati</th>
               <th style={{ padding: '16px 24px', fontWeight: '600', width: '80px' }}>Amallar</th>
             </tr>
@@ -180,6 +181,7 @@ function StaffPageContent() {
                     {roleLabels[staff.role] || staff.role}
                   </td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>{staff.phone || '—'}</td>
+                  <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>{staff.default_commission_rate ? `${staff.default_commission_rate}%` : '0%'}</td>
                   <td style={{ padding: '16px 24px' }}>
                     <span style={{ 
                       padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600',
@@ -242,11 +244,18 @@ function StaffPageContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Telefon raqam</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" name="phone" placeholder="+998 90 123 45 67" style={{ width: '100%', padding: '10px 12px 10px 40px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Telefon raqam</label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input type="text" name="phone" placeholder="+998 90 123 45 67" style={{ width: '100%', padding: '10px 12px 10px 40px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Standart komissiya (%)</label>
+                  <input type="number" name="default_commission_rate" defaultValue={0} min={0} max={100} style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
                 </div>
               </div>
 
@@ -300,11 +309,18 @@ function StaffPageContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '500' }}>Telefon raqam</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" name="phone" defaultValue={selectedStaff.phone || ''} style={{ width: '100%', padding: '10px 12px 10px 40px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Telefon raqam</label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input type="text" name="phone" defaultValue={selectedStaff.phone || ''} style={{ width: '100%', padding: '10px 12px 10px 40px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Standart komissiya (%)</label>
+                  <input type="number" name="default_commission_rate" defaultValue={selectedStaff.default_commission_rate || 0} min={0} max={100} style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
                 </div>
               </div>
 
