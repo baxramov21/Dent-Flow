@@ -199,53 +199,9 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
     setError(null)
 
     try {
-      // 1. Working Hours Validation
-      const workStart = clinic?.working_hours?.work_start_time || '09:00'
-      const workEnd = clinic?.working_hours?.work_end_time || '18:00'
-      const breakStart = clinic?.working_hours?.break_start_time || '13:00'
-      const breakEnd = clinic?.working_hours?.break_end_time || '14:00'
-      
-      const apptStart = formData.start_time
-      
-      const [startH, startM] = apptStart.split(':').map(Number)
-      const duration = parseInt(formData.duration_minutes) || 30
-      const endH = startH + Math.floor((startM + duration) / 60)
-      const endM = (startM + duration) % 60
-      const apptEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`
-
-      if (apptStart < workStart || apptEnd > workEnd) {
-        throw new Error(`Klinika ish vaqti ${workStart} dan ${workEnd} gacha. Iltimos, boshqa vaqt tanlang.`)
-      }
-
-      if (apptStart < breakEnd && apptEnd > breakStart) {
-        throw new Error(`Klinika tushlik tanaffusida (${breakStart} - ${breakEnd}). Ushbu vaqtga navbat yozib bo'lmaydi.`)
-      }
-
       // Create full ISO strings for start and end
       const startDateTime = new Date(`${formData.date}T${formData.start_time}:00`)
-      const endDateTime = new Date(startDateTime.getTime() + formData.duration_minutes * 60000)
-
-      // ---- Double-booking conflict check ----
-      const { data: conflicts } = await supabase
-        .from('appointments')
-        .select('id, start_time, end_time')
-        .eq('dentist_id', formData.dentist_id)
-        .eq('clinic_id', clinic.id)
-        .not('status', 'in', '("cancelled")')
-        .lt('start_time', endDateTime.toISOString())
-        .gt('end_time', startDateTime.toISOString())
-
-      if (conflicts && conflicts.length > 0) {
-        // filter out current appointment when editing
-        const actualConflicts = conflicts.filter(c => c.id !== initialData?.id)
-        if (actualConflicts.length > 0) {
-          const conflictTime = new Date(actualConflicts[0].start_time)
-            .toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-          const dentistName = dentists.find(d => d.id === formData.dentist_id)?.full_name || 'Shifokor'
-          throw new Error(`${dentistName} soat ${conflictTime} da allaqachon band! Iltimos boshqa vaqtni tanlang.`)
-        }
-      }
-      // ---- End conflict check ----
+      const endDateTime = new Date(startDateTime.getTime() + (parseInt(formData.duration_minutes) || 30) * 60000)
 
       let finalPatientId = formData.patient_id
       let planId = null
@@ -765,42 +721,16 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '500' }}>Boshlanish vaqti *</label>
-          <DatePicker
-            selected={formData.start_time ? new Date(`1970-01-01T${formData.start_time}:00`) : null}
-            onChange={(date) => {
-              if (date) {
-                const time = date.toTimeString().split(' ')[0].substring(0, 5);
-                handleChange({ target: { name: 'start_time', value: time } });
-              }
-            }}
-            showTimeSelect
-            showTimeSelectOnly
-            timeIntervals={15}
-            timeCaption="Vaqt"
-            dateFormat="HH:mm"
-            timeFormat="HH:mm"
-            minTime={new Date(new Date().setHours(9, 0, 0, 0))}
-            maxTime={new Date(new Date().setHours(19, 0, 0, 0))}
-            customInput={<input style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />}
+          <label style={{ fontSize: '13px', fontWeight: '500' }}>Kelgan vaqti *</label>
+          <input 
+            type="time" 
+            name="start_time" 
+            required 
+            value={formData.start_time} 
+            onChange={handleChange} 
+            style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
           />
         </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <label style={{ fontSize: '13px', fontWeight: '500' }}>Davomiyligi (daqiqa) *</label>
-        <select
-          name="duration_minutes"
-          value={formData.duration_minutes}
-          onChange={handleChange}
-          style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', backgroundColor: 'var(--bg-card)' }}
-        >
-          <option value={15}>15 daqiqa (Konsultatsiya)</option>
-          <option value={30}>30 daqiqa (Standart)</option>
-          <option value={60}>1 soat (Kengaytirilgan)</option>
-          <option value={90}>1.5 soat (Murakkab)</option>
-          <option value={120}>2 soat (Jarrohlik)</option>
-        </select>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
