@@ -499,13 +499,32 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '500' }}>Tug'ilgan sana</label>
-                <input
-                  type="date"
-                  name="date_of_birth"
-                  value={newPatientData.date_of_birth}
-                  onChange={handleNewPatientChange}
-                  required={isNewPatient}
-                  style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                <DatePicker
+                  selected={
+                    newPatientData.date_of_birth && !isNaN(new Date(newPatientData.date_of_birth).getTime())
+                      ? new Date(newPatientData.date_of_birth)
+                      : null
+                  }
+                  onChange={(date) => {
+                    if (!date || isNaN(date.getTime())) return;
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    setNewPatientData(prev => ({ ...prev, date_of_birth: `${year}-${month}-${day}` }));
+                  }}
+                  onChangeRaw={(e) => {
+                    if (!e.target.value) {
+                      setNewPatientData(prev => ({ ...prev, date_of_birth: '' }));
+                    }
+                  }}
+                  locale="uz"
+                  dateFormat="dd.MM.yyyy"
+                  placeholderText="dd.mm.yyyy"
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
+                  isClearable
+                  customInput={<input style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box', backgroundColor: 'var(--bg-card)' }} />}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
