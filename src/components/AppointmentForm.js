@@ -6,6 +6,8 @@ import { useClinic } from '@/context/ClinicContext'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 import uz from 'date-fns/locale/uz'
+import CheckoutView from '@/components/CheckoutView'
+import { Calendar, CreditCard } from 'lucide-react'
 
 registerLocale('uz', uz)
 
@@ -29,6 +31,8 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
     duration_minutes: initialData ? Math.round((new Date(initialData.end_time) - new Date(initialData.start_time)) / 60000) : 30,
     notes: initialData?.notes || ''
   })
+  
+  const [activeTab, setActiveTab] = useState('details') // 'details' | 'checkout'
 
   // New Patient State
   const [isNewPatient, setIsNewPatient] = useState(defaultIsNewPatient || !!patientToEdit)
@@ -407,8 +411,38 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
+      {/* Tab Navigation when editing an existing patient */}
+      {patientToEdit && (
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('details')}
+            style={{
+              padding: '12px 24px', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '14px', fontWeight: '600',
+              border: 'none', borderBottom: activeTab === 'details' ? '2px solid var(--accent)' : '2px solid transparent',
+              color: activeTab === 'details' ? 'var(--accent)' : 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
+            }}
+          >
+            <Calendar size={16} /> Bemor Ma'lumotlari
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('checkout')}
+            style={{
+              padding: '12px 24px', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '14px', fontWeight: '600',
+              border: 'none', borderBottom: activeTab === 'checkout' ? '2px solid var(--accent)' : '2px solid transparent',
+              color: activeTab === 'checkout' ? 'var(--accent)' : 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
+            }}
+          >
+            <CreditCard size={16} /> Muolajalar va To'lov
+          </button>
+        </div>
+      )}
+
       {error && (
         <div style={{ position: 'fixed', top: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, padding: '16px 24px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: '500', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: '12px', maxWidth: '400px', animation: 'modalSlideUp 0.3s ease-out' }}>
           <div style={{ fontSize: '20px' }}>⚠️</div>
@@ -417,8 +451,11 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
         </div>
       )}
 
-      {/* Segmented Control for Patient Type - Only show when creating NEW appointment and not editing a patient */}
-      {!initialData?.id && !patientToEdit && (
+      <div style={{ display: activeTab === 'details' ? 'block' : 'none' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Segmented Control for Patient Type - Only show when creating NEW appointment and not editing a patient */}
+          {!initialData?.id && !patientToEdit && (
         <div style={{ display: 'flex', backgroundColor: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '4px' }}>
           <button 
             type="button"
@@ -771,13 +808,28 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-        <button type="button" onClick={onCancel} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'transparent', cursor: 'pointer', fontWeight: '500', color: 'var(--text-secondary)' }}>
+        <button type="button" onClick={onCancel} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'white', color: 'var(--text-secondary)', fontWeight: '500', cursor: 'pointer' }}>
           Bekor qilish
         </button>
-        <button type="submit" disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: 'none', backgroundColor: 'var(--accent)', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: '500', opacity: loading ? 0.7 : 1 }}>
+        <button type="submit" disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)', border: 'none', backgroundColor: 'var(--accent)', color: 'white', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
           {loading ? 'Saqlanmoqda...' : (isNewPatient && !scheduleAppointment ? 'Bemorni saqlash' : (initialData?.id ? 'O\'zgarishlarni saqlash' : 'Qabulga yozish'))}
         </button>
       </div>
-    </form>
+        </form>
+      </div>
+
+      {activeTab === 'checkout' && patientToEdit && (
+        <CheckoutView 
+          patient={patientToEdit} 
+          clinicId={clinic.id} 
+          dentistId={formData.dentist_id} 
+          onSuccess={() => {
+             alert('Muvaffaqiyatli saqlandi!')
+             if(onSuccess) onSuccess()
+          }}
+          onClose={onCancel}
+        />
+      )}
+    </div>
   )
 }

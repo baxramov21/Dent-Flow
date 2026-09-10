@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { X, DollarSign, CheckCircle } from 'lucide-react'
 
-export default function CheckoutView({ appointment, onSuccess, onClose }) {
+export default function CheckoutView({ appointment, patient, clinicId, dentistId, onSuccess, onClose }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState([])
@@ -19,20 +19,41 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
   const [paymentMethod, setPaymentMethod] = useState('cash')
 
   useEffect(() => {
-    if (!appointment) return
+    if (!appointment && !patient) return
+
+    const actualClinicId = appointment ? appointment.clinic_id : clinicId
+    const actualPatientId = appointment ? appointment.patients?.id || appointment.patient_id : patient.id
 
     async function loadItems() {
       try {
         const { data: servicesData } = await supabase
           .from('services')
           .select('id, name, price, category')
-          .eq('clinic_id', appointment.clinic_id)
+          .eq('clinic_id', actualClinicId)
           .eq('is_active', true)
           .order('name')
           
         setClinicServices(servicesData || [])
 
-        if (!appointment.treatment_plan_id) {
+        let planId = appointment?.treatment_plan_id
+        
+        if (!planId) {
+          // Find active plan for patient
+          const { data: activePlan } = await supabase
+            .from('treatment_plans')
+            .select('id')
+            .eq('patient_id', actualPatientId)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+            
+          if (activePlan) {
+            planId = activePlan.id
+          }
+        }
+
+        if (!planId) {
           setItems([])
           setFetching(false)
           return
@@ -41,7 +62,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
         const { data, error } = await supabase
           .from('treatment_items')
           .select('id, service_id, price_override, status, services(name, price)')
-          .eq('treatment_plan_id', appointment.treatment_plan_id)
+          .eq('treatment_plan_id', planId)
           .in('status', ['planned', 'in_progress', 'completed'])
 
         if (error) throw error
@@ -61,7 +82,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     }
 
     loadItems()
-  }, [appointment])
+  }, [appointment, patient, clinicId])
 
   const toggleItem = (id) => {
     setItems(items.map(item => item.id === id ? { ...item, selected: !item.selected } : item))
@@ -93,8 +114,9 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     if (!newServiceName.trim() || !newServicePrice) return
     const priceValue = parseInt(newServicePrice)
     
+    const actualClinicId = appointment ? appointment.clinic_id : clinicId
     const { data, error } = await supabase.from('services').insert([{
-       clinic_id: appointment.clinic_id,
+       clinic_id: actualClinicId,
        name: newServiceName,
        price: priceValue,
        is_active: true
@@ -145,29 +167,48 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
     try {
       const selectedItems = items.filter(i => i.selected)
       
-      let currentPlanId = appointment.treatment_plan_id
+      let currentPlanId = appointment?.treatment_plan_id
+      const actualClinicId = appointment ? appointment.clinic_id : clinicId
+      const actualPatientId = appointment ? (appointment.patients?.id || appointment.patient_id) : patient.id
+      const actualDentistId = appointment ? appointment.dentist_id : dentistId
       
       // If no treatment plan exists and we have items, create one
       if (!currentPlanId && selectedItems.length > 0) {
-        const { data: newPlan, error: pErr } = await supabase
+        // Try finding active one first (might have missed it in useEffect)
+        const { data: activePlan } = await supabase
           .from('treatment_plans')
-          .insert([{
-            clinic_id: appointment.clinic_id,
-            patient_id: appointment.patient_id,
-            dentist_id: appointment.dentist_id,
-            title: 'Tezkor qabul rejasi',
-            status: 'active'
-          }])
-          .select('id').single()
-          
-        if (pErr) throw pErr
-        currentPlanId = newPlan.id
+          .select('id')
+          .eq('patient_id', actualPatientId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (activePlan) {
+          currentPlanId = activePlan.id
+        } else {
+          const { data: newPlan, error: pErr } = await supabase
+            .from('treatment_plans')
+            .insert([{
+              clinic_id: actualClinicId,
+              patient_id: actualPatientId,
+              dentist_id: actualDentistId,
+              title: 'Tezkor qabul rejasi',
+              status: 'active'
+            }])
+            .select('id').single()
+            
+          if (pErr) throw pErr
+          currentPlanId = newPlan.id
+        }
         
-        // Link to appointment immediately
-        await supabase
-          .from('appointments')
-          .update({ treatment_plan_id: currentPlanId })
-          .eq('id', appointment.id)
+        // Link to appointment immediately if we have one
+        if (appointment) {
+          await supabase
+            .from('appointments')
+            .update({ treatment_plan_id: currentPlanId })
+            .eq('id', appointment.id)
+        }
       }
       
       // 1. Update treatment items
@@ -177,7 +218,7 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
             await supabase
               .from('treatment_items')
               .insert({
-                clinic_id: appointment.clinic_id,
+                clinic_id: actualClinicId,
                 treatment_plan_id: currentPlanId,
                 service_id: item.service_id,
                 status: 'completed',
@@ -204,32 +245,35 @@ export default function CheckoutView({ appointment, onSuccess, onClose }) {
       else if (totalCost === 0) paymentStatus = 'paid'
 
       // 3. Update Appointment
-      const { error: apptError } = await supabase
-        .from('appointments')
-        .update({
-          status: 'completed'
-        })
-        .eq('id', appointment.id)
+      if (appointment) {
+        const { error: apptError } = await supabase
+          .from('appointments')
+          .update({
+            status: 'completed'
+          })
+          .eq('id', appointment.id)
 
-      if (apptError) throw apptError
+        if (apptError) throw apptError
+      }
 
       // 4. Log Payment if paidVal > 0
       if (paidVal > 0) {
         const { error: paymentError } = await supabase
           .from('payments')
           .insert([{
-            clinic_id: appointment.clinic_id,
-            patient_id: appointment.patient_id,
+            clinic_id: actualClinicId,
+            patient_id: actualPatientId,
             treatment_plan_id: currentPlanId,
             amount: paidVal,
             payment_method: paymentMethod,
-            notes: 'Avtomatik to\'lov (Qabul yakunlanganda)'
+            notes: appointment ? 'Avtomatik to\'lov (Qabul yakunlanganda)' : 'Tahrirlash panelidan to\'lov'
           }])
         if (paymentError) throw paymentError
       }
 
 
-      onSuccess()
+      if (onSuccess) onSuccess()
+
     } catch (err) {
       console.error("Error during checkout:", err)
       alert("Xatolik yuz berdi: " + err.message)
