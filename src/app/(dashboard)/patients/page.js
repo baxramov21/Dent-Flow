@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import DatePicker from 'react-datepicker'
-import "react-datepicker/dist/react-datepicker.css"
 import { Search, Plus, Calendar, Phone, User as UserIcon, Filter, Edit2, Trash2, Clock } from 'lucide-react'
 import Link from 'next/link'
 import AppointmentForm from '@/components/AppointmentForm'

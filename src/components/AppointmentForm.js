@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import DatePicker from 'react-datepicker'
+import DatePicker, { registerLocale } from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
+import uz from 'date-fns/locale/uz'
+
+registerLocale('uz', uz)
 
 export default function AppointmentForm({ initialData = null, onSuccess, onCancel, defaultIsNewPatient = false }) {
   const { clinic } = useClinic()
@@ -487,9 +490,16 @@ export default function AppointmentForm({ initialData = null, onSuccess, onCance
                 <DatePicker
                   selected={newPatientData.date_of_birth ? new Date(newPatientData.date_of_birth) : null}
                   onChange={(date) => {
-                    const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                    setNewPatientData(prev => ({ ...prev, date_of_birth: formattedDate }));
+                    if (!date) {
+                      setNewPatientData(prev => ({ ...prev, date_of_birth: '' }));
+                      return;
+                    }
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    setNewPatientData(prev => ({ ...prev, date_of_birth: `${year}-${month}-${day}` }));
                   }}
+                  locale="uz"
                   dateFormat="dd.MM.yyyy"
                   placeholderText="dd.mm.yyyy"
                   showYearDropdown

@@ -3,8 +3,11 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { X, CheckCircle } from 'lucide-react'
-import DatePicker from 'react-datepicker'
+import DatePicker, { registerLocale } from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
+import uz from 'date-fns/locale/uz'
+
+registerLocale('uz', uz)
 
 export default function EditPatientModal({ patient, onClose, onSuccess }) {
   const supabase = createClient()
@@ -125,9 +128,16 @@ export default function EditPatientModal({ patient, onClose, onSuccess }) {
               <DatePicker
                 selected={formData.date_of_birth ? new Date(formData.date_of_birth) : null}
                 onChange={(date) => {
-                  const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                  setFormData(prev => ({ ...prev, date_of_birth: formattedDate }));
+                  if (!date) {
+                    setFormData(prev => ({ ...prev, date_of_birth: '' }));
+                    return;
+                  }
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  setFormData(prev => ({ ...prev, date_of_birth: `${year}-${month}-${day}` }));
                 }}
+                locale="uz"
                 dateFormat="dd.MM.yyyy"
                 placeholderText="dd.mm.yyyy"
                 showYearDropdown

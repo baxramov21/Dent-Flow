@@ -1,7 +1,10 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
-import DatePicker from 'react-datepicker'
+import DatePicker, { registerLocale } from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
+import uz from 'date-fns/locale/uz'
+
+registerLocale('uz', uz)
 import { Calendar } from 'lucide-react'
 
 export default function AppleDateRange({ startDate, endDate, onChange }) {
@@ -82,6 +85,7 @@ export default function AppleDateRange({ startDate, endDate, onChange }) {
             startDate={startDate}
             endDate={endDate}
             selectsRange
+            locale="uz"
             inline
             monthsShown={2}
           />
