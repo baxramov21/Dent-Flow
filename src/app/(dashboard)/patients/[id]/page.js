@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
 import EditPatientModal from '@/components/EditPatientModal'
 import DentalChart from '@/components/DentalChart'
-import { getInitials } from '@/utils/helpers'
 import AppointmentForm from '@/components/AppointmentForm'
 import { toggleTreatmentItemStatus } from '@/app/actions/finance'
 
