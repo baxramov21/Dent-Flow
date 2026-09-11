@@ -223,32 +223,64 @@ function SharedDefs() {
   )
 }
 
-/* ── Individual Tooth ─────────────────────────────────────────── */
-function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
+/* ── Spring-bounce keyframe (injected once) ──────────────────── */
+const SPRING_STYLE = `
+  @keyframes toothSelect {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.38); }
+    65%  { transform: scale(1.26); }
+    80%  { transform: scale(1.33); }
+    100% { transform: scale(1.30); }
+  }
+  @keyframes toothDeselect {
+    0%   { transform: scale(1.30); }
+    60%  { transform: scale(0.96); }
+    100% { transform: scale(1); }
+  }
+  .tooth-selected  { animation: toothSelect  0.32s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .tooth-normal    { animation: toothDeselect 0.22s ease-out forwards; }
+`
+let styleInjected = false
+function injectStyle() {
+  if (styleInjected || typeof document === 'undefined') return
+  styleInjected = true
+  const el = document.createElement('style')
+  el.textContent = SPRING_STYLE
+  document.head.appendChild(el)
+}
+
+function ToothSVG({ num, isUpper, status, crownColor, isSelected, hasSelection, onClick }) {
   const type = classify(num)
   const def  = DEFS[type]
   if (!def) return null
 
+  // Inject spring keyframes on first render
+  React.useEffect(() => { injectStyle() }, [])
+
   const isExtracted = status === 'extracted'
-  /*
-    Crown at top (y→0), roots go down.
-    Upper teeth: rotate 180° around (30,70) → roots point UP, crown at bottom.
-  */
   const flip = isUpper ? 'rotate(180 30 70)' : ''
+  // Dim unselected teeth when another is selected
+  const dimmed = !isSelected && hasSelection && !isExtracted
 
   return (
     <div
       onClick={onClick}
+      className={isSelected ? 'tooth-selected' : (hasSelection ? 'tooth-normal' : '')}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
         cursor: 'pointer',
-        transform: isSelected ? 'scale(1.14)' : 'scale(1)',
-        transition: 'transform 0.18s',
-        zIndex: isSelected ? 10 : 1, position: 'relative'
+        opacity: isExtracted ? 0.12 : dimmed ? 0.55 : 1,
+        transition: 'opacity 0.22s ease',
+        zIndex: isSelected ? 20 : 1, position: 'relative'
       }}
     >
       {!isUpper && (
-        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#A5B4FC' : '#9CA3AF' }}>
+        <span style={{
+          fontSize: 11, fontWeight: 700,
+          color: isSelected ? '#A5B4FC' : '#9CA3AF',
+          textShadow: isSelected ? '0 0 10px rgba(165,180,252,0.9)' : 'none',
+          transition: 'all 0.2s'
+        }}>
           {num}
         </span>
       )}
@@ -256,22 +288,22 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
       <div style={{
         width: 44, height: 106,
         filter: isSelected
-          ? 'drop-shadow(0 0 7px rgba(99,102,241,0.7))'
-          : 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))',
-        opacity: isExtracted ? 0.12 : 1,
-        transition: 'all 0.18s'
+          /* Triple-layer glow: tight core + soft halo + wide bloom */
+          ? 'drop-shadow(0 0 3px rgba(165,180,252,1)) drop-shadow(0 0 10px rgba(99,102,241,0.85)) drop-shadow(0 0 22px rgba(99,102,241,0.45))'
+          : 'drop-shadow(0 2px 5px rgba(0,0,0,0.45))',
+        transition: 'filter 0.22s ease'
       }}>
         <svg viewBox="0 0 60 140" width="100%" height="100%" overflow="visible">
           <g transform={flip}>
             {/* Roots */}
             {def.roots.map((rPath, i) => (
               <React.Fragment key={i}>
-                <path d={rPath} fill="url(#toothBody)" stroke="#939190" strokeWidth="0.5" />
+                <path d={rPath} fill="url(#toothBody)" stroke={isSelected ? 'none' : '#939190'} strokeWidth="0.5" />
                 <path d={rPath} fill="url(#toothVert)" />
               </React.Fragment>
             ))}
             {/* Crown */}
-            <path d={def.crown} fill="url(#toothBody)" stroke="#939190" strokeWidth="0.7" />
+            <path d={def.crown} fill="url(#toothBody)" stroke={isSelected ? 'none' : '#939190'} strokeWidth="0.7" />
             <path d={def.crown} fill="url(#toothVert)" />
             {/* Colour tint */}
             {crownColor && (
@@ -287,6 +319,18 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
             ))}
             {/* Specular highlight */}
             <path d={def.spec} fill="url(#toothSpec)" />
+
+            {/* ── SELECTION RING: indigo outline on every shape ── */}
+            {isSelected && (
+              <>
+                {def.roots.map((rp, i) => (
+                  <path key={`sel-r${i}`} d={rp} fill="none"
+                    stroke="#818CF8" strokeWidth="2.8" strokeLinejoin="round" opacity="0.95" />
+                ))}
+                <path d={def.crown} fill="none"
+                  stroke="#818CF8" strokeWidth="2.8" strokeLinejoin="round" opacity="0.95" />
+              </>
+            )}
           </g>
 
           {isExtracted && (
@@ -299,7 +343,12 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
       </div>
 
       {isUpper && (
-        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#A5B4FC' : '#9CA3AF' }}>
+        <span style={{
+          fontSize: 11, fontWeight: 700,
+          color: isSelected ? '#A5B4FC' : '#9CA3AF',
+          textShadow: isSelected ? '0 0 10px rgba(165,180,252,0.9)' : 'none',
+          transition: 'all 0.2s'
+        }}>
           {num}
         </span>
       )}
@@ -403,6 +452,7 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
             status={d.status}
             crownColor={st?.color && d.status !== 'healthy' ? st.color : null}
             isSelected={selectedTooth === num}
+            hasSelection={!!selectedTooth}
             onClick={() => handleClick(num)}
           />
         )
