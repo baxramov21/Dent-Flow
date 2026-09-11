@@ -197,14 +197,14 @@ function SharedDefs() {
       <defs>
         {/* 3-D cylindrical gradient: dark edge → bright centre → dark edge */}
         <linearGradient id="toothBody" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="#8E8C8A" />
-          <stop offset="10%"  stopColor="#B8B6B4" />
-          <stop offset="28%"  stopColor="#DEDDDB" />
-          <stop offset="46%"  stopColor="#F8F7F5" />
+          <stop offset="0%"   stopColor="#A8A6A4" />
+          <stop offset="10%"  stopColor="#D4D2D0" />
+          <stop offset="28%"  stopColor="#F0EFED" />
+          <stop offset="46%"  stopColor="#FDFCFB" />
           <stop offset="52%"  stopColor="#FFFFFF" />
-          <stop offset="62%"  stopColor="#F2F1EF" />
-          <stop offset="80%"  stopColor="#CCCAC8" />
-          <stop offset="100%" stopColor="#8E8C8A" />
+          <stop offset="62%"  stopColor="#F5F4F2" />
+          <stop offset="80%"  stopColor="#DCDAD8" />
+          <stop offset="100%" stopColor="#A8A6A4" />
         </linearGradient>
         {/* Vertical: bright top → slight dark at root apex */}
         <linearGradient id="toothVert" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -248,7 +248,7 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
       }}
     >
       {!isUpper && (
-        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#6366F1' : '#4B5563' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#A5B4FC' : '#9CA3AF' }}>
           {num}
         </span>
       )}
@@ -299,7 +299,7 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
       </div>
 
       {isUpper && (
-        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#6366F1' : '#4B5563' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#A5B4FC' : '#9CA3AF' }}>
           {num}
         </span>
       )}
@@ -431,10 +431,12 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
 
       {/* Chart */}
       <div style={{
-        overflowX: 'auto', background: '#FFFFFF',
-        borderRadius: 20, border: '1px solid #E2E8F0',
+        overflowX: 'auto',
+        background: 'linear-gradient(145deg, #1C1F2E 0%, #141623 100%)',
+        borderRadius: 20,
+        border: '1px solid rgba(255,255,255,0.08)',
         padding: '28px 16px',
-        boxShadow: '0 1px 8px rgba(0,0,0,0.06)'
+        boxShadow: '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'center' }}>
           {renderRow(upperRow, true)}
