@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import { Search, Plus, Calendar, Phone, User as UserIcon, Filter, Edit2, Trash2, Clock } from 'lucide-react'
+import { Search, Plus, Calendar, Phone, User as UserIcon, Filter, Edit2, Trash2, Clock, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import AppointmentForm from '@/components/AppointmentForm'
 
@@ -317,7 +317,15 @@ export default function PatientsPage() {
       {isAppointmentModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-page)', zIndex: 100, overflowY: 'auto' }}>
           <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh', padding: '32px', backgroundColor: 'var(--bg-card)' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '32px' }}>Yangi bemor qo'shish</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+              <button
+                onClick={() => setIsAppointmentModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+              >
+                <ArrowLeft size={24} />
+              </button>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Yangi bemor qo'shish</h2>
+            </div>
             <AppointmentForm
                defaultIsNewPatient={true}
                onSuccess={() => {
@@ -333,7 +341,15 @@ export default function PatientsPage() {
       {editingPatient && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-page)', zIndex: 100, overflowY: 'auto' }}>
           <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh', padding: '32px', backgroundColor: 'var(--bg-card)' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '32px' }}>Profilni tahrirlash</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+              <button
+                onClick={() => setEditingPatient(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+              >
+                <ArrowLeft size={24} />
+              </button>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Profilni tahrirlash</h2>
+            </div>
             <AppointmentForm
               patientToEdit={editingPatient}
               onSuccess={() => {
