@@ -1,8 +1,7 @@
+'use client'
 import React, { useState } from 'react'
 
-/* ─────────────────────────────────────────
-   Tooth arrays  (FDI notation)
-───────────────────────────────────────── */
+/* ── Tooth Arrays ─────────────────────────── */
 const ADULT_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]
 const ADULT_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
 const CHILD_UPPER = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65]
@@ -20,317 +19,383 @@ export const TOOTH_STATUSES = [
   { id: 'planned',    label: 'Rejada',    color: '#6366F1', textColor: '#fff' },
 ]
 
-/* ─────────────────────────────────────────
-   Classify tooth
-───────────────────────────────────────── */
+/* ── Tooth Classification ──────────────────── */
 const classify = (num) => {
-  const t = num % 10
   if (num >= 51 && num <= 85) {
-    if (t <= 2 || t === 1) return 'ci'
+    const t = num % 10
+    if (t <= 2) return 'ci'
     if (t === 3) return 'cc'
     return 'cm'
   }
+  const t = num % 10
   if (t === 8 || t === 7 || t === 6) return (num >= 30 && num < 50) ? 'lm' : 'um'
   if (t === 5 || t === 4) return 'pm'
   if (t === 3) return 'cn'
   return 'in'
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   SVG tooth paths — viewBox "0 0 60 160"
+/* ──────────────────────────────────────────────────────────────
+   ANATOMICAL SVG PATHS  — viewBox "0 0 60 160"
    
-   DESIGN: crown at TOP (y≈0..60), roots at BOTTOM (y≈60..158)
-   - Lower teeth rendered AS-IS  (crown up, roots down)
-   - Upper teeth rendered with rotate(180, 30, 80) so crown is at 
-     bottom (gumline) and roots point up — matching reference image
-──────────────────────────────────────────────────────────────────*/
-const PATHS = {
+   Convention: CROWN is at TOP (y 0→65), ROOTS go DOWN (y 65→155+)
+   Lower teeth: rendered as-is  (crown up, roots down)
+   Upper teeth: rotated 180° around (30, 80)  → roots up, crown down
+─────────────────────────────────────────────────────────────── */
+const DEFS = {
 
-  /* ── Central / Lateral Incisor ─────────── */
+  /* ══════════════ LOWER / UPPER CENTRAL INCISOR ══════════════
+     Flat chisel-shaped crown, single tapered root.
+     Slight convexity on buccal, very narrow mesiodistally.   */
   in: {
-    // flat shovel crown
-    crown: `M 16 62
-            C 16 48, 16 30, 17 16
-            C 19 4, 41 4, 43 16
-            C 44 30, 44 48, 44 62
-            C 38 65, 22 65, 16 62 Z`,
-    // single straight root
-    roots: [`M 22 63
-             C 21 85, 22 115, 26 142
-             C 27 150, 29 154, 30 154
-             C 31 154, 33 150, 34 142
-             C 38 115, 39 85, 38 63
-             C 33 65, 27 65, 22 63 Z`],
-    // specular highlight oval inside crown
-    spec: `M 23 30 C 23 18, 26 12, 30 12 C 34 12, 37 18, 37 30
-           C 34 26, 26 26, 23 30 Z`
+    crown: `
+      M 17 63
+      C 16 52, 15 38, 16 24
+      C 17 14, 20 7, 30 7
+      C 40 7, 43 14, 44 24
+      C 45 38, 44 52, 43 63
+      C 38 67, 22 67, 17 63 Z`,
+    roots: [`
+      M 20 64
+      C 19 84, 19 112, 23 140
+      C 24 149, 27 154, 30 154
+      C 33 154, 36 149, 37 140
+      C 41 112, 41 84, 40 64
+      C 36 68, 24 68, 20 64 Z`],
+    /* subtle buccal ridge line (centre of incisor crown) */
+    grooves: [`M 30 10 C 30 24, 30 40, 30 63`],
+    /* specular oval – upper-left of crown */
+    spec: `M 20 28 C 20 16, 24 10, 30 10 C 36 10, 38 16, 38 28 C 34 22, 26 22, 20 28 Z`
   },
 
-  /* ── Canine ─────────────────────────────── */
+  /* ══════════════ CANINE ══════════════════════════════════════
+     Very pointed single cusp, one very long root.             */
   cn: {
-    crown: `M 15 62
-            C 14 46, 13 26, 16 12
-            C 19 1, 41 1, 44 12
-            C 47 26, 46 46, 45 62
-            C 38 66, 22 66, 15 62 Z`,
-    roots: [`M 20 64
-             C 19 88, 20 122, 24 150
-             C 26 157, 29 160, 30 160
-             C 31 160, 34 157, 36 150
-             C 40 122, 41 88, 40 64
-             C 35 67, 25 67, 20 64 Z`],
-    spec: `M 21 28 C 21 14, 25 7, 30 7 C 35 7, 39 14, 39 28
-           C 35 22, 25 22, 21 28 Z`
+    crown: `
+      M 15 62
+      C 14 48, 13 30, 15 16
+      C 17 6, 23 0, 30 0
+      C 37 0, 43 6, 45 16
+      C 47 30, 46 48, 45 62
+      C 38 67, 22 67, 15 62 Z`,
+    roots: [`
+      M 19 64
+      C 18 90, 18 124, 22 152
+      C 24 160, 28 164, 30 164
+      C 32 164, 36 160, 38 152
+      C 42 124, 42 90, 41 64
+      C 36 68, 24 68, 19 64 Z`],
+    grooves: [`M 30 3 C 30 20, 30 42, 30 62`],
+    spec: `M 19 25 C 19 12, 23 5, 30 5 C 37 5, 41 12, 41 25 C 36 18, 24 18, 19 25 Z`
   },
 
-  /* ── Premolar ─────────────────────────────── */
+  /* ══════════════ PREMOLAR ════════════════════════════════════
+     Two cusps visible from buccal (buccal & lingual tips).
+     Two roots, close together, diverge slightly.              */
   pm: {
-    crown: `M 11 62
-            C 10 46, 11 26, 14 13
-            C 17 3, 23 0, 30 0
-            C 37 0, 43 3, 46 13
-            C 49 26, 50 46, 49 62
-            C 42 67, 18 67, 11 62 Z`,
+    crown: `
+      M 11 62
+      C 10 48, 10 28, 12 16
+      C 14 8, 18 3, 23 2
+      L 26 8
+      C 28 5, 32 5, 34 8
+      L 37 2
+      C 42 3, 46 8, 48 16
+      C 50 28, 50 48, 49 62
+      C 42 67, 18 67, 11 62 Z`,
     roots: [
-      // mesial root
-      `M 14 64
-       C 13 88, 14 115, 17 138
-       C 18 146, 20 150, 22 148
-       C 24 146, 25 142, 26 138
-       C 28 115, 29 88, 28 64
-       C 24 67, 18 67, 14 64 Z`,
-      // distal root
+      /* mesial root */
+      `M 13 64
+       C 12 86, 12 112, 14 136
+       C 15 145, 18 150, 21 148
+       C 24 146, 25 142, 26 136
+       C 28 112, 29 86, 28 64
+       C 24 68, 16 68, 13 64 Z`,
+      /* distal root */
       `M 32 64
-       C 31 88, 32 115, 35 138
-       C 36 142, 37 146, 38 148
-       C 40 150, 42 146, 43 138
-       C 46 115, 47 88, 46 64
-       C 42 67, 36 67, 32 64 Z`
+       C 31 86, 31 112, 34 136
+       C 35 142, 36 146, 39 148
+       C 42 150, 45 145, 46 136
+       C 48 112, 48 86, 47 64
+       C 44 68, 36 68, 32 64 Z`
     ],
-    spec: `M 17 26 C 17 12, 22 4, 30 4 C 38 4, 43 12, 43 26
-           C 38 18, 22 18, 17 26 Z`
+    /* central groove */
+    grooves: [`M 30 6 C 30 20, 30 44, 30 62`],
+    spec: `M 16 22 C 16 10, 21 4, 30 4 C 39 4, 44 10, 44 22 C 38 15, 22 15, 16 22 Z`
   },
 
-  /* ── Upper Molar (3 roots) ────────────────── */
-  um: {
-    crown: `M 7 60
-            C 5 44, 6 24, 9 12
-            C 12 2, 20 0, 30 0
-            C 40 0, 48 2, 51 12
-            C 54 24, 55 44, 53 60
-            C 44 65, 16 65, 7 60 Z`,
-    roots: [
-      // buccal-mesial (left)
-      `M 9 62
-       C 8 84, 8 110, 10 132
-       C 11 140, 13 145, 15 143
-       C 17 141, 19 137, 20 132
-       C 22 110, 23 84, 22 62
-       C 18 66, 12 66, 9 62 Z`,
-      // palatal (center, tallest)
-      `M 25 63
-       C 24 88, 24 120, 26 147
-       C 27 154, 29 158, 30 158
-       C 31 158, 33 154, 34 147
-       C 36 120, 36 88, 35 63
-       C 32 67, 28 67, 25 63 Z`,
-      // buccal-distal (right)
-      `M 38 62
-       C 37 84, 37 110, 40 132
-       C 41 137, 43 141, 45 143
-       C 47 145, 49 140, 50 132
-       C 52 110, 52 84, 51 62
-       C 48 66, 42 66, 38 62 Z`
-    ],
-    spec: `M 13 24 C 13 10, 19 2, 30 2 C 41 2, 47 10, 47 24
-           C 40 16, 20 16, 13 24 Z`
-  },
-
-  /* ── Lower Molar (2 roots) ────────────────── */
+  /* ══════════════ LOWER MOLAR ═════════════════════════════════
+     Wide crown with 2 visible buccal cusps + buccal groove.
+     Two roots: mesial (curves left) and distal (shorter, right).  */
   lm: {
-    crown: `M 7 60
-            C 5 44, 6 24, 9 12
-            C 12 2, 20 0, 30 0
-            C 40 0, 48 2, 51 12
-            C 54 24, 55 44, 53 60
-            C 44 65, 16 65, 7 60 Z`,
+    crown: `
+      M 8 64
+      C 7 52, 7 34, 9 20
+      C 10 13, 13 8, 16 6
+      L 20 11
+      L 23 6
+      C 28 9, 33 9, 37 6
+      L 40 11
+      L 44 6
+      C 47 8, 50 13, 51 20
+      C 53 34, 53 52, 52 64
+      C 44 70, 16 70, 8 64 Z`,
     roots: [
-      // mesial
-      `M 9 62
-       C 8 86, 8 114, 11 138
-       C 13 146, 15 150, 17 148
-       C 19 146, 21 142, 22 138
-       C 25 114, 26 86, 25 62
-       C 20 66, 12 66, 9 62 Z`,
-      // distal
-      `M 35 62
-       C 34 86, 34 114, 38 138
-       C 39 142, 41 146, 43 148
-       C 45 150, 47 146, 49 138
-       C 52 114, 52 86, 51 62
-       C 48 66, 40 66, 35 62 Z`
+      /* mesial root — curves slightly to the left (mesially) */
+      `M 10 66
+       C 9 86, 6 112, 6 134
+       C 6 143, 9 149, 13 147
+       C 17 145, 19 140, 20 134
+       C 22 112, 23 86, 24 66
+       C 20 71, 14 71, 10 66 Z`,
+      /* distal root — more straight / slightly shorter */
+      `M 36 66
+       C 35 86, 35 112, 37 133
+       C 38 141, 41 146, 44 144
+       C 47 142, 48 137, 49 133
+       C 51 112, 51 86, 50 66
+       C 46 71, 40 71, 36 66 Z`
     ],
-    spec: `M 13 24 C 13 10, 19 2, 30 2 C 41 2, 47 10, 47 24
-           C 40 16, 20 16, 13 24 Z`
+    /* buccal groove — visible vertical line between cusps */
+    grooves: [
+      `M 31 8 C 31 18, 31 36, 31 64`,
+    ],
+    spec: `M 12 24 C 12 10, 18 2, 30 2 C 42 2, 48 10, 48 24 C 40 16, 20 16, 12 24 Z`
   },
 
-  /* ── Child Incisor ─────────────────────────── */
+  /* ══════════════ UPPER MOLAR ═════════════════════════════════
+     Very wide crown, 3 cusps visible (MB + B + DB).
+     Three roots: buccal-mesial, palatal (tallest), buccal-distal.  */
+  um: {
+    crown: `
+      M 6 62
+      C 5 48, 5 28, 7 15
+      C 8 8, 12 4, 16 3
+      L 20 9
+      L 24 3
+      C 28 1, 32 1, 36 3
+      L 40 9
+      L 44 3
+      C 48 4, 52 8, 53 15
+      C 55 28, 55 48, 54 62
+      C 46 68, 14 68, 6 62 Z`,
+    roots: [
+      /* buccal-mesial (left) – curves slightly mesially */
+      `M 8 64
+       C 7 84, 5 108, 5 128
+       C 5 137, 8 143, 12 141
+       C 16 139, 18 133, 19 128
+       C 21 108, 22 84, 23 64
+       C 18 69, 12 69, 8 64 Z`,
+      /* palatal (centre) – tallest root */
+      `M 25 64
+       C 24 86, 24 118, 25 146
+       C 26 154, 28 158, 30 158
+       C 32 158, 34 154, 35 146
+       C 36 118, 36 86, 35 64
+       C 32 69, 28 69, 25 64 Z`,
+      /* buccal-distal (right) – curves slightly distally */
+      `M 37 64
+       C 37 84, 38 108, 40 128
+       C 41 133, 43 139, 47 141
+       C 51 143, 53 137, 54 128
+       C 55 108, 53 84, 51 64
+       C 48 69, 42 69, 37 64 Z`
+    ],
+    grooves: [
+      `M 30 4 C 30 18, 30 42, 30 62`,
+    ],
+    spec: `M 11 22 C 11 8, 17 1, 30 1 C 43 1, 49 8, 49 22 C 42 14, 18 14, 11 22 Z`
+  },
+
+  /* ══════════════ CHILD INCISOR ═══════════════════════════════ */
   ci: {
-    crown: `M 18 56 C 18 44, 18 28, 20 16 C 22 6, 38 6, 40 16
-            C 42 28, 42 44, 42 56 C 37 60, 23 60, 18 56 Z`,
-    roots: [`M 22 57 C 21 76, 22 102, 26 122 C 27 129, 29 132, 30 132
-             C 31 132, 33 129, 34 122 C 38 102, 39 76, 38 57
-             C 34 61, 26 61, 22 57 Z`],
-    spec: `M 22 30 C 22 18, 25 13, 30 13 C 35 13, 38 18, 38 30 C 34 24, 26 24, 22 30 Z`
+    crown: `M 19 56 C 18 46, 18 30, 20 18 C 22 8, 38 8, 40 18
+            C 42 30, 42 46, 41 56 C 36 60, 24 60, 19 56 Z`,
+    roots: [`M 22 57 C 21 75, 21 100, 25 122 C 26 130, 28 134, 30 134
+             C 32 134, 34 130, 35 122 C 39 100, 39 75, 38 57
+             C 34 62, 26 62, 22 57 Z`],
+    grooves: [`M 30 10 C 30 22, 30 40, 30 56`],
+    spec: `M 22 28 C 22 18, 25 13, 30 13 C 35 13, 38 18, 38 28 C 34 22, 26 22, 22 28 Z`
   },
 
-  /* ── Child Canine ──────────────────────────── */
+  /* ══════════════ CHILD CANINE ════════════════════════════════ */
   cc: {
     crown: `M 17 56 C 16 44, 15 28, 18 14 C 21 4, 39 4, 42 14
-            C 45 28, 44 44, 43 56 C 37 60, 23 60, 17 56 Z`,
-    roots: [`M 21 57 C 20 78, 21 108, 25 130 C 26 137, 29 140, 30 140
-             C 31 140, 34 137, 35 130 C 39 108, 40 78, 39 57
-             C 34 61, 26 61, 21 57 Z`],
-    spec: `M 22 28 C 22 16, 25 10, 30 10 C 35 10, 38 16, 38 28 C 34 22, 26 22, 22 28 Z`
+            C 45 28, 44 44, 43 56 C 36 61, 24 61, 17 56 Z`,
+    roots: [`M 21 57 C 20 78, 20 106, 24 128 C 25 136, 28 140, 30 140
+             C 32 140, 35 136, 36 128 C 40 106, 40 78, 39 57
+             C 35 62, 25 62, 21 57 Z`],
+    grooves: [`M 30 6 C 30 20, 30 40, 30 56`],
+    spec: `M 21 24 C 21 14, 24 8, 30 8 C 36 8, 39 14, 39 24 C 35 18, 25 18, 21 24 Z`
   },
 
-  /* ── Child Molar ───────────────────────────── */
+  /* ══════════════ CHILD MOLAR ═════════════════════════════════ */
   cm: {
-    crown: `M 10 58 C 9 44, 10 26, 13 14 C 16 4, 22 0, 30 0
-            C 38 0, 44 4, 47 14 C 50 26, 51 44, 50 58
-            C 42 63, 18 63, 10 58 Z`,
+    crown: `M 10 58 C 9 46, 9 28, 11 16
+            C 13 7, 17 3, 21 2 L 24 7 L 28 2 C 32 0, 36 2, 39 7 L 42 2
+            C 46 3, 50 7, 51 16 C 53 28, 51 46, 50 58
+            C 42 64, 18 64, 10 58 Z`,
     roots: [
-      `M 12 60 C 11 80, 11 105, 14 124 C 15 131, 17 135, 19 133
-       C 21 131, 22 127, 23 124 C 26 105, 27 80, 26 60
-       C 22 64, 14 64, 12 60 Z`,
-      `M 34 60 C 33 80, 33 105, 37 124 C 38 127, 39 131, 41 133
-       C 43 135, 45 131, 46 124 C 49 105, 49 80, 48 60
-       C 46 64, 38 64, 34 60 Z`
+      `M 12 60 C 11 78, 10 104, 12 124 C 13 132, 15 136, 18 134
+       C 21 132, 23 128, 23 124 C 25 104, 26 78, 25 60
+       C 21 65, 15 65, 12 60 Z`,
+      `M 35 60 C 34 78, 33 104, 36 124 C 37 128, 39 132, 42 134
+       C 45 136, 47 132, 48 124 C 50 104, 50 78, 48 60
+       C 45 65, 39 65, 35 60 Z`
     ],
-    spec: `M 15 24 C 15 10, 20 3, 30 3 C 40 3, 45 10, 45 24 C 38 16, 22 16, 15 24 Z`
+    grooves: [`M 30 3 C 30 16, 30 38, 30 58`],
+    spec: `M 14 22 C 14 10, 19 3, 30 3 C 41 3, 46 10, 46 22 C 40 14, 20 14, 14 22 Z`
   }
 }
 
-/* ─────────────────────────────────────────
-   Single Tooth SVG
-───────────────────────────────────────── */
+/* ──────────────────────────────────────────────
+   Global SVG defs (shared gradients, rendered once)
+─────────────────────────────────────────────── */
+function SharedDefs() {
+  return (
+    <svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }}>
+      <defs>
+        {/* 3-D cylindrical gradient: dark-edge → bright-centre → dark-edge */}
+        <linearGradient id="toothBody" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#8E8C8A" />
+          <stop offset="10%"  stopColor="#B8B6B4" />
+          <stop offset="28%"  stopColor="#DEDDDB" />
+          <stop offset="46%"  stopColor="#F8F7F5" />
+          <stop offset="52%"  stopColor="#FFFFFF" />
+          <stop offset="62%"  stopColor="#F2F1EF" />
+          <stop offset="80%"  stopColor="#CCCAC8" />
+          <stop offset="100%" stopColor="#8E8C8A" />
+        </linearGradient>
+
+        {/* Vertical shading: bright top → subtle dark at root apex */}
+        <linearGradient id="toothVert" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.5" />
+          <stop offset="38%"  stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.11" />
+        </linearGradient>
+
+        {/* Specular highlight: bright oval, simulates light from upper-left */}
+        <radialGradient id="toothSpec" cx="45%" cy="32%" r="45%" fx="40%" fy="18%">
+          <stop offset="0%"  stopColor="#FFFFFF" stopOpacity="0.95" />
+          <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.30" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </radialGradient>
+
+        {/* Subtle groove/shadow colour */}
+        <linearGradient id="grooveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#7A7876" />
+          <stop offset="50%"  stopColor="#5A5856" />
+          <stop offset="100%" stopColor="#7A7876" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
+/* ──────────────────────────────────────────────
+   Individual Tooth Renderer
+─────────────────────────────────────────────── */
 function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
-  const type = classify(num)
-  const def = PATHS[type]
+  const type  = classify(num)
+  const def   = DEFS[type]
   if (!def) return null
 
   const isExtracted = status === 'extracted'
-  const uid = `g${num}`
+  const uid = `t${num}`
 
   /*
-    Standard orientation: crown at top, root at bottom.
-    Upper jaw teeth in a dental chart have roots pointing UP 
-    and crowns at the gumline (bottom of the visual column).
-    So we rotate 180° around the centre of the viewbox for upper teeth.
+    Upper teeth: in a standard dental chart, roots point UP (away from occlusal plane).
+    We design crowns at top (y→0) and roots going down (y→160), then for UPPER teeth
+    we rotate 180° around the vertical midpoint of the viewbox to flip them.
   */
-  const toothTransform = isUpper ? 'rotate(180 30 80)' : ''
+  const flip = isUpper ? 'rotate(180 30 82)' : ''
 
   return (
     <div
       onClick={onClick}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 5,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
         cursor: 'pointer',
+        transform: isSelected ? 'scale(1.14)' : 'scale(1)',
         transition: 'transform 0.18s',
-        transform: isSelected ? 'scale(1.13)' : 'scale(1)',
-        zIndex: isSelected ? 10 : 1,
-        position: 'relative'
+        zIndex: isSelected ? 10 : 1, position: 'relative'
       }}
     >
-      {/* Number — above SVG for lower, below SVG for upper */}
+      {/* Number label */}
       {!isUpper && (
-        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#6366F1' : '#475569' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#6366F1' : '#4B5563' }}>
           {num}
         </span>
       )}
 
       <div style={{
-        width: 42, height: 104,
+        width: 44, height: 106,
         filter: isSelected
-          ? 'drop-shadow(0 0 7px rgba(99,102,241,0.65))'
-          : 'drop-shadow(0 1px 3px rgba(0,0,0,0.22))',
-        opacity: isExtracted ? 0.15 : 1,
+          ? 'drop-shadow(0 0 7px rgba(99,102,241,0.7))'
+          : 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))',
+        opacity: isExtracted ? 0.12 : 1,
         transition: 'all 0.18s'
       }}>
-        <svg viewBox="0 0 60 160" width="100%" height="100%" overflow="visible">
-          <defs>
-            {/* Lateral gradient: dark edges, bright centre — gives 3-D cylinder feel */}
-            <linearGradient id={`${uid}b`} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stopColor="#B0AEAC" />
-              <stop offset="10%"  stopColor="#D4D2D0" />
-              <stop offset="30%"  stopColor="#EFEFED" />
-              <stop offset="50%"  stopColor="#FFFFFF" />
-              <stop offset="70%"  stopColor="#EBEAE8" />
-              <stop offset="90%"  stopColor="#CECECC" />
-              <stop offset="100%" stopColor="#AFAFAD" />
-            </linearGradient>
+        <svg viewBox="0 0 60 164" width="100%" height="100%" overflow="visible">
+          <g transform={flip}>
 
-            {/* Vertical shading: bright top, darker towards root tip */}
-            <linearGradient id={`${uid}v`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.55" />
-              <stop offset="35%"  stopColor="#FFFFFF" stopOpacity="0" />
-              <stop offset="100%" stopColor="#000000" stopOpacity="0.10" />
-            </linearGradient>
-
-            {/* Specular highlight (bright oval near top of crown) */}
-            <radialGradient id={`${uid}s`} cx="50%" cy="35%" r="50%" fx="50%" fy="20%">
-              <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.95" />
-              <stop offset="55%"  stopColor="#FFFFFF" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-            </radialGradient>
-
-            {/* Crown colour tint overlay */}
-            {crownColor && (
-              <linearGradient id={`${uid}c`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%"   stopColor="#000" stopOpacity="0.28" />
-                <stop offset="18%"  stopColor={crownColor} stopOpacity="0.82" />
-                <stop offset="50%"  stopColor={crownColor} stopOpacity="0.92" />
-                <stop offset="82%"  stopColor={crownColor} stopOpacity="0.82" />
-                <stop offset="100%" stopColor="#000" stopOpacity="0.28" />
-              </linearGradient>
-            )}
-          </defs>
-
-          <g transform={toothTransform}>
-            {/* ── Roots ── */}
-            {def.roots.map((rp, i) => (
+            {/* ── Roots (drawn first, behind crown) ── */}
+            {def.roots.map((rPath, i) => (
               <React.Fragment key={i}>
-                <path d={rp} fill={`url(#${uid}b)`} stroke="#A8A6A3" strokeWidth="0.5" />
-                <path d={rp} fill={`url(#${uid}v)`} />
+                {/* Root body */}
+                <path d={rPath} fill="url(#toothBody)" stroke="#898785" strokeWidth="0.5" />
+                {/* Root vertical shading */}
+                <path d={rPath} fill="url(#toothVert)" />
               </React.Fragment>
             ))}
 
             {/* ── Crown body ── */}
-            <path d={def.crown} fill={`url(#${uid}b)`} stroke="#A8A6A3" strokeWidth="0.6" />
-            <path d={def.crown} fill={`url(#${uid}v)`} />
+            <path d={def.crown} fill="url(#toothBody)" stroke="#939190" strokeWidth="0.7" />
+            {/* Crown vertical shading */}
+            <path d={def.crown} fill="url(#toothVert)" />
 
-            {/* ── Crown colour overlay ── */}
-            {crownColor && <path d={def.crown} fill={`url(#${uid}c)`} />}
+            {/* ── Crown colour tint (only when status is set) ── */}
+            {crownColor && (() => {
+              // inline gradient stops via a per-tooth filter instead
+              return (
+                <>
+                  <path d={def.crown} fill={crownColor} opacity="0.72" />
+                  {/* Keep edges dark */}
+                  <path d={def.crown} fill="url(#toothBody)" opacity="0.18" />
+                </>
+              )
+            })()}
 
-            {/* ── Specular highlight (inside crown) ── */}
-            <path d={def.spec} fill={`url(#${uid}s)`} />
+            {/* ── Buccal groove / ridge lines ── */}
+            {def.grooves?.map((gPath, i) => (
+              <path
+                key={i}
+                d={gPath}
+                fill="none"
+                stroke="#88817E"
+                strokeWidth="0.9"
+                strokeLinecap="round"
+                opacity="0.28"
+              />
+            ))}
+
+            {/* ── Specular highlight on crown ── */}
+            <path d={def.spec} fill="url(#toothSpec)" />
+
           </g>
 
-          {/* Extracted cross */}
+          {/* ── Extracted X ── */}
           {isExtracted && (
             <>
-              <line x1="6" y1="8" x2="54" y2="152" stroke="#374151" strokeWidth="3.5" strokeLinecap="round"/>
-              <line x1="54" y1="8" x2="6" y2="152" stroke="#374151" strokeWidth="3.5" strokeLinecap="round"/>
+              <line x1="6" y1="8" x2="54" y2="156" stroke="#374151" strokeWidth="3.5" strokeLinecap="round" />
+              <line x1="54" y1="8" x2="6" y2="156" stroke="#374151" strokeWidth="3.5" strokeLinecap="round" />
             </>
           )}
         </svg>
       </div>
 
       {isUpper && (
-        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#6366F1' : '#475569' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#6366F1' : '#4B5563' }}>
           {num}
         </span>
       )}
@@ -338,23 +403,22 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
   )
 }
 
-/* ─────────────────────────────────────────
+/* ──────────────────────────────────────────────
    5-Surface diagram
-───────────────────────────────────────── */
-const SURF_PATHS = [
+─────────────────────────────────────────────── */
+const SURFS = [
   { id: 'B', d: 'M 0 0 L 100 0 L 72 28 L 28 28 Z', label: 'Buccal' },
   { id: 'L', d: 'M 0 100 L 100 100 L 72 72 L 28 72 Z', label: 'Lingual' },
   { id: 'M', d: 'M 0 0 L 28 28 L 28 72 L 0 100 Z', label: 'Mesial' },
   { id: 'D', d: 'M 100 0 L 72 28 L 72 72 L 100 100 Z', label: 'Distal' },
   { id: 'O', d: 'M 28 28 L 72 28 L 72 72 L 28 72 Z', label: 'Occlusal' },
 ]
-
 function SurfaceDiagram({ surfaces, activeSurface, onToggle }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <span style={{ fontSize: 13, fontWeight: 600, color: '#64748B' }}>Yuzani tanlang</span>
       <svg viewBox="0 0 100 100" width={88} height={88} style={{ cursor: 'pointer' }}>
-        {SURF_PATHS.map(s => {
+        {SURFS.map(s => {
           const stId = surfaces?.[s.id]
           const st = TOOTH_STATUSES.find(x => x.id === stId)
           const isAct = activeSurface === s.id
@@ -370,25 +434,23 @@ function SurfaceDiagram({ surfaces, activeSurface, onToggle }) {
             </g>
           )
         })}
-        <text x="50" y="14"  textAnchor="middle" fontSize="9" fill="#64748B" pointerEvents="none">B</text>
-        <text x="50" y="93"  textAnchor="middle" fontSize="9" fill="#64748B" pointerEvents="none">L</text>
-        <text x="11" y="52"  textAnchor="middle" fontSize="9" fill="#64748B" pointerEvents="none">M</text>
-        <text x="89" y="52"  textAnchor="middle" fontSize="9" fill="#64748B" pointerEvents="none">D</text>
-        <text x="50" y="54"  textAnchor="middle" fontSize="9" fill="#64748B" pointerEvents="none">O</text>
+        {[['B',50,14],['L',50,93],['M',11,52],['D',89,52],['O',50,54]].map(([id,x,y]) => (
+          <text key={id} x={x} y={y} textAnchor="middle" fontSize="9" fill="#64748B" pointerEvents="none">{id}</text>
+        ))}
       </svg>
       <span style={{ fontSize: 11, color: '#94A3B8' }}>
-        {activeSurface ? `Tanlangan: ${SURF_PATHS.find(s => s.id === activeSurface)?.label}` : 'Bosing'}
+        {activeSurface ? `Tanlangan: ${SURFS.find(s => s.id === activeSurface)?.label}` : 'Bosing'}
       </span>
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Main component
-───────────────────────────────────────── */
+/* ──────────────────────────────────────────────
+   Main DentalChart
+─────────────────────────────────────────────── */
 export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = false }) {
   const [selectedTooth, setSelectedTooth] = useState(null)
-  const [viewType, setViewType]   = useState('adult')
+  const [viewType, setViewType]           = useState('adult')
   const [activeSurface, setActiveSurface] = useState(null)
 
   const getParsed = (number) => {
@@ -412,7 +474,6 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
     const cur = getParsed(selectedTooth)
     let newStatus = cur.status
     let newSurfaces = { ...cur.surfaces }
-
     if (activeSurface) {
       if (statusId === 'healthy') delete newSurfaces[activeSurface]
       else newSurfaces[activeSurface] = statusId
@@ -429,18 +490,20 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
   const lowerRow = viewType === 'adult' ? ADULT_LOWER : CHILD_LOWER
 
   const renderRow = (nums, isUpper) => (
-    <div style={{ display: 'flex', alignItems: isUpper ? 'flex-end' : 'flex-start', gap: 4, justifyContent: 'center', minWidth: 'fit-content' }}>
+    <div style={{
+      display: 'flex',
+      alignItems: isUpper ? 'flex-end' : 'flex-start',
+      justifyContent: 'center',
+      gap: 5, minWidth: 'fit-content'
+    }}>
       {nums.map(num => {
-        const d = getParsed(num)
+        const d  = getParsed(num)
         const st = TOOTH_STATUSES.find(s => s.id === d.status)
-        const crownColor = st?.color && d.status !== 'healthy' ? st.color : null
         return (
           <ToothSVG
-            key={num}
-            num={num}
-            isUpper={isUpper}
+            key={num} num={num} isUpper={isUpper}
             status={d.status}
-            crownColor={crownColor}
+            crownColor={st?.color && d.status !== 'healthy' ? st.color : null}
             isSelected={selectedTooth === num}
             onClick={() => handleClick(num)}
           />
@@ -453,6 +516,9 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '100%' }}>
+
+      {/* Shared gradient defs */}
+      <SharedDefs />
 
       {/* Toggle */}
       <div style={{ display: 'flex', gap: 10 }}>
@@ -469,16 +535,14 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
 
       {/* Chart */}
       <div style={{
-        overflowX: 'auto',
-        background: '#FFFFFF',
-        borderRadius: 20,
-        border: '1px solid #E2E8F0',
-        padding: '24px 16px',
+        overflowX: 'auto', background: '#FFFFFF',
+        borderRadius: 20, border: '1px solid #E2E8F0',
+        padding: '28px 16px',
         boxShadow: '0 1px 8px rgba(0,0,0,0.06)'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'center' }}>
           {renderRow(upperRow, true)}
-          <div style={{ height: 12 }} />
+          <div style={{ height: 14 }} />
           {renderRow(lowerRow, false)}
         </div>
       </div>
@@ -492,7 +556,6 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
             </h3>
             <button onClick={() => setSelectedTooth(null)} style={{ background: 'none', border: 'none', fontSize: 22, color: '#94A3B8', cursor: 'pointer' }}>×</button>
           </div>
-
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <SurfaceDiagram
               surfaces={curData?.surfaces}
@@ -502,7 +565,7 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
             <div style={{ flex: 1, minWidth: 240 }}>
               <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: '#64748B' }}>
                 {activeSurface
-                  ? `"${SURF_PATHS.find(s => s.id === activeSurface)?.label}" yuzasi uchun holat`
+                  ? `"${SURFS.find(s => s.id === activeSurface)?.label}" yuzasi uchun holat`
                   : 'Butun tish uchun holat'}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
