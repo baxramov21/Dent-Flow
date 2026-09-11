@@ -83,16 +83,17 @@ export default function Sidebar() {
       borderRight: '1px solid rgba(255,255,255,0.06)',
     }}>
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px', paddingLeft: '4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '36px', paddingLeft: '4px' }}>
         <div style={{
-          width: '36px', height: '36px',
+          width: '52px', height: '52px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
-          <img src="/logo-transparent.png" alt="DentFlow Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          <img src="/logo-new.jpg" alt="DentFlow Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', letterSpacing: '-0.02em', color: '#F8FAFC' }}>DentFlow</h2>
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontWeight: '500', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Klinika CRM</span>
+          <h2 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.02em', color: '#F8FAFC', margin: 0 }}>DentFlow</h2>
+          <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Klinika CRM</span>
         </div>
       </div>
       
