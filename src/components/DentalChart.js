@@ -1,7 +1,6 @@
 'use client'
 import React, { useState } from 'react'
 
-/* ── Tooth Arrays ─────────────────────────── */
 const ADULT_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]
 const ADULT_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
 const CHILD_UPPER = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65]
@@ -19,7 +18,6 @@ export const TOOTH_STATUSES = [
   { id: 'planned',    label: 'Rejada',    color: '#6366F1', textColor: '#fff' },
 ]
 
-/* ── Tooth Classification ──────────────────── */
 const classify = (num) => {
   if (num >= 51 && num <= 85) {
     const t = num % 10
@@ -35,227 +33,169 @@ const classify = (num) => {
 }
 
 /* ──────────────────────────────────────────────────────────────
-   ANATOMICAL SVG PATHS  — viewBox "0 0 60 160"
-   
-   Convention: CROWN is at TOP (y 0→65), ROOTS go DOWN (y 65→155+)
+   ANATOMICAL SVG PATHS — viewBox "0 0 60 140"
+
+   Crown at TOP (y 0→65), roots DOWN (y 65→~120).
+   Root ≈ crown height. S-curve taper to blunt tip.
+   Seamless crown→root junction (very slight concave indent).
+   Molars: moderate splay.
+
    Lower teeth: rendered as-is  (crown up, roots down)
-   Upper teeth: rotated 180° around (30, 80)  → roots up, crown down
-─────────────────────────────────────────────────────────────── */
+   Upper teeth: rotate(180, 30, 70) → roots up, crown down
+────────────────────────────────────────────────────────────── */
 const DEFS = {
 
-  /* ══════════════ LOWER / UPPER CENTRAL INCISOR ══════════════
-     Flat chisel-shaped crown, single tapered root.
-     Slight convexity on buccal, very narrow mesiodistally.   */
+  /* ── INCISOR ───────────────────────────────────────────────
+     Flat chisel crown. Single root, S-curve taper, root≈crown. */
   in: {
-    crown: `
-      M 17 63
-      C 16 52, 15 38, 16 24
-      C 17 14, 20 7, 30 7
-      C 40 7, 43 14, 44 24
-      C 45 38, 44 52, 43 63
-      C 38 67, 22 67, 17 63 Z`,
-    roots: [`
-      M 20 64
-      C 19 84, 19 112, 23 140
-      C 24 149, 27 154, 30 154
-      C 33 154, 36 149, 37 140
-      C 41 112, 41 84, 40 64
-      C 36 68, 24 68, 20 64 Z`],
-    /* subtle buccal ridge line (centre of incisor crown) */
-    grooves: [`M 30 10 C 30 24, 30 40, 30 63`],
-    /* specular oval – upper-left of crown */
-    spec: `M 20 28 C 20 16, 24 10, 30 10 C 36 10, 38 16, 38 28 C 34 22, 26 22, 20 28 Z`
+    crown: `M 17 63 C 16 52,15 38,16 24 C 17 14,20 7,30 7
+            C 40 7,43 14,44 24 C 45 38,44 52,43 63
+            C 38 67,22 67,17 63 Z`,
+    roots: [
+      `M 20 65 C 19 76,20 92,22 106 C 24 114,27 119,30 119
+       C 33 119,36 114,38 106 C 40 92,41 76,40 65
+       C 36 68,24 68,20 65 Z`
+    ],
+    grooves: [`M 30 10 C 30 26,30 44,30 63`],
+    spec: `M 20 28 C 20 16,24 10,30 10 C 36 10,38 16,38 28 C 34 22,26 22,20 28 Z`
   },
 
-  /* ══════════════ CANINE ══════════════════════════════════════
-     Very pointed single cusp, one very long root.             */
+  /* ── CANINE ────────────────────────────────────────────────
+     Pointed cusp. One root ~1.3× crown (canines have longest root). */
   cn: {
-    crown: `
-      M 15 62
-      C 14 48, 13 30, 15 16
-      C 17 6, 23 0, 30 0
-      C 37 0, 43 6, 45 16
-      C 47 30, 46 48, 45 62
-      C 38 67, 22 67, 15 62 Z`,
-    roots: [`
-      M 19 64
-      C 18 90, 18 124, 22 152
-      C 24 160, 28 164, 30 164
-      C 32 164, 36 160, 38 152
-      C 42 124, 42 90, 41 64
-      C 36 68, 24 68, 19 64 Z`],
-    grooves: [`M 30 3 C 30 20, 30 42, 30 62`],
-    spec: `M 19 25 C 19 12, 23 5, 30 5 C 37 5, 41 12, 41 25 C 36 18, 24 18, 19 25 Z`
+    crown: `M 15 62 C 14 48,13 30,15 16 C 17 6,23 0,30 0
+            C 37 0,43 6,45 16 C 47 30,46 48,45 62
+            C 38 67,22 67,15 62 Z`,
+    roots: [
+      `M 18 64 C 17 76,18 96,21 112 C 23 122,27 128,30 128
+       C 33 128,37 122,39 112 C 42 96,43 76,42 64
+       C 38 68,22 68,18 64 Z`
+    ],
+    grooves: [`M 30 3 C 30 20,30 44,30 62`],
+    spec: `M 19 25 C 19 12,23 5,30 5 C 37 5,41 12,41 25 C 36 18,24 18,19 25 Z`
   },
 
-  /* ══════════════ PREMOLAR ════════════════════════════════════
-     Two cusps visible from buccal (buccal & lingual tips).
-     Two roots, close together, diverge slightly.              */
+  /* ── PREMOLAR ──────────────────────────────────────────────
+     Two cusps. Two roots, slight splay, blunt tips. */
   pm: {
-    crown: `
-      M 11 62
-      C 10 48, 10 28, 12 16
-      C 14 8, 18 3, 23 2
-      L 26 8
-      C 28 5, 32 5, 34 8
-      L 37 2
-      C 42 3, 46 8, 48 16
-      C 50 28, 50 48, 49 62
-      C 42 67, 18 67, 11 62 Z`,
+    crown: `M 11 62 C 10 48,10 28,12 16 C 14 8,18 3,23 2
+            L 26 8 C 28 5,32 5,34 8 L 37 2
+            C 42 3,46 8,48 16 C 50 28,50 48,49 62
+            C 42 67,18 67,11 62 Z`,
     roots: [
-      /* mesial root */
-      `M 13 64
-       C 12 86, 12 112, 14 136
-       C 15 145, 18 150, 21 148
-       C 24 146, 25 142, 26 136
-       C 28 112, 29 86, 28 64
-       C 24 68, 16 68, 13 64 Z`,
-      /* distal root */
-      `M 32 64
-       C 31 86, 31 112, 34 136
-       C 35 142, 36 146, 39 148
-       C 42 150, 45 145, 46 136
-       C 48 112, 48 86, 47 64
-       C 44 68, 36 68, 32 64 Z`
+      /* mesial — very slight lean left */
+      `M 14 64 C 13 76,13 94,15 108 C 17 116,20 121,23 119
+       C 26 117,27 113,28 108 C 30 94,30 76,28 64
+       C 25 68,17 68,14 64 Z`,
+      /* distal — very slight lean right */
+      `M 32 64 C 32 76,32 94,35 108 C 37 113,38 117,41 119
+       C 44 121,47 116,49 108 C 51 94,47 76,46 64
+       C 43 68,35 68,32 64 Z`
     ],
-    /* central groove */
-    grooves: [`M 30 6 C 30 20, 30 44, 30 62`],
-    spec: `M 16 22 C 16 10, 21 4, 30 4 C 39 4, 44 10, 44 22 C 38 15, 22 15, 16 22 Z`
+    grooves: [`M 30 6 C 30 22,30 46,30 62`],
+    spec: `M 16 22 C 16 10,21 4,30 4 C 39 4,44 10,44 22 C 38 15,22 15,16 22 Z`
   },
 
-  /* ══════════════ LOWER MOLAR ═════════════════════════════════
-     Wide crown with 2 visible buccal cusps + buccal groove.
-     Two roots: mesial (curves left) and distal (shorter, right).  */
+  /* ── LOWER MOLAR ───────────────────────────────────────────
+     Wide crown, 2 buccal cusps. Two roots, moderate splay.
+     Mesial curves left, distal curves right. Root ≈ crown. */
   lm: {
-    crown: `
-      M 8 64
-      C 7 52, 7 34, 9 20
-      C 10 13, 13 8, 16 6
-      L 20 11
-      L 23 6
-      C 28 9, 33 9, 37 6
-      L 40 11
-      L 44 6
-      C 47 8, 50 13, 51 20
-      C 53 34, 53 52, 52 64
-      C 44 70, 16 70, 8 64 Z`,
+    crown: `M 8 64 C 7 52,7 34,9 20 C 10 13,13 8,16 6
+            L 20 11 L 23 6 C 28 9,33 9,37 6 L 40 11 L 44 6
+            C 47 8,50 13,51 20 C 53 34,53 52,52 64
+            C 44 70,16 70,8 64 Z`,
     roots: [
-      /* mesial root — curves slightly to the left (mesially) */
-      `M 10 66
-       C 9 86, 6 112, 6 134
-       C 6 143, 9 149, 13 147
-       C 17 145, 19 140, 20 134
-       C 22 112, 23 86, 24 66
-       C 20 71, 14 71, 10 66 Z`,
-      /* distal root — more straight / slightly shorter */
-      `M 36 66
-       C 35 86, 35 112, 37 133
-       C 38 141, 41 146, 44 144
-       C 47 142, 48 137, 49 133
-       C 51 112, 51 86, 50 66
-       C 46 71, 40 71, 36 66 Z`
+      /* mesial — curves left */
+      `M 10 67 C 8 80,6 96,6 110 C 6 118,9 124,13 122
+       C 17 120,19 115,20 110 C 22 96,23 80,24 67
+       C 20 71,14 71,10 67 Z`,
+      /* distal — curves right */
+      `M 36 67 C 37 80,38 96,40 110 C 41 115,43 120,47 122
+       C 51 124,54 118,54 110 C 54 96,51 80,50 67
+       C 46 71,40 71,36 67 Z`
     ],
-    /* buccal groove — visible vertical line between cusps */
-    grooves: [
-      `M 31 8 C 31 18, 31 36, 31 64`,
-    ],
-    spec: `M 12 24 C 12 10, 18 2, 30 2 C 42 2, 48 10, 48 24 C 40 16, 20 16, 12 24 Z`
+    grooves: [`M 31 8 C 31 20,31 40,31 64`],
+    spec: `M 12 24 C 12 10,18 2,30 2 C 42 2,48 10,48 24 C 40 16,20 16,12 24 Z`
   },
 
-  /* ══════════════ UPPER MOLAR ═════════════════════════════════
-     Very wide crown, 3 cusps visible (MB + B + DB).
-     Three roots: buccal-mesial, palatal (tallest), buccal-distal.  */
+  /* ── UPPER MOLAR ───────────────────────────────────────────
+     Very wide crown, 3 visible cusps (MB, B, DB).
+     Three roots: BM (splays left), palatal (centre, tallest),
+     BD (splays right). All with moderate splay, root≈crown.  */
   um: {
-    crown: `
-      M 6 62
-      C 5 48, 5 28, 7 15
-      C 8 8, 12 4, 16 3
-      L 20 9
-      L 24 3
-      C 28 1, 32 1, 36 3
-      L 40 9
-      L 44 3
-      C 48 4, 52 8, 53 15
-      C 55 28, 55 48, 54 62
-      C 46 68, 14 68, 6 62 Z`,
+    crown: `M 6 62 C 5 48,5 28,7 15 C 8 8,12 4,16 3
+            L 20 9 L 24 3 C 28 1,32 1,36 3 L 40 9 L 44 3
+            C 48 4,52 8,53 15 C 55 28,55 48,54 62
+            C 46 68,14 68,6 62 Z`,
     roots: [
-      /* buccal-mesial (left) – curves slightly mesially */
-      `M 8 64
-       C 7 84, 5 108, 5 128
-       C 5 137, 8 143, 12 141
-       C 16 139, 18 133, 19 128
-       C 21 108, 22 84, 23 64
-       C 18 69, 12 69, 8 64 Z`,
-      /* palatal (centre) – tallest root */
-      `M 25 64
-       C 24 86, 24 118, 25 146
-       C 26 154, 28 158, 30 158
-       C 32 158, 34 154, 35 146
-       C 36 118, 36 86, 35 64
-       C 32 69, 28 69, 25 64 Z`,
-      /* buccal-distal (right) – curves slightly distally */
-      `M 37 64
-       C 37 84, 38 108, 40 128
-       C 41 133, 43 139, 47 141
-       C 51 143, 53 137, 54 128
-       C 55 108, 53 84, 51 64
-       C 48 69, 42 69, 37 64 Z`
+      /* buccal-mesial — moderate splay left */
+      `M 9 65 C 7 78,5 95,4 109 C 4 117,7 123,11 121
+       C 15 119,17 113,18 109 C 20 95,22 78,23 65
+       C 18 69,12 69,9 65 Z`,
+      /* palatal — centre, slightly taller */
+      `M 25 65 C 24 78,24 98,26 113 C 27 120,29 125,30 125
+       C 31 125,33 120,34 113 C 36 98,36 78,35 65
+       C 32 69,28 69,25 65 Z`,
+      /* buccal-distal — moderate splay right */
+      `M 37 65 C 38 78,40 95,42 109 C 43 113,45 119,49 121
+       C 53 123,56 117,56 109 C 55 95,53 78,51 65
+       C 48 69,42 69,37 65 Z`
     ],
-    grooves: [
-      `M 30 4 C 30 18, 30 42, 30 62`,
-    ],
-    spec: `M 11 22 C 11 8, 17 1, 30 1 C 43 1, 49 8, 49 22 C 42 14, 18 14, 11 22 Z`
+    grooves: [`M 30 4 C 30 20,30 46,30 62`],
+    spec: `M 11 22 C 11 8,17 1,30 1 C 43 1,49 8,49 22 C 42 14,18 14,11 22 Z`
   },
 
-  /* ══════════════ CHILD INCISOR ═══════════════════════════════ */
+  /* ── CHILD INCISOR ─────────────────────────────────────────── */
   ci: {
-    crown: `M 19 56 C 18 46, 18 30, 20 18 C 22 8, 38 8, 40 18
-            C 42 30, 42 46, 41 56 C 36 60, 24 60, 19 56 Z`,
-    roots: [`M 22 57 C 21 75, 21 100, 25 122 C 26 130, 28 134, 30 134
-             C 32 134, 34 130, 35 122 C 39 100, 39 75, 38 57
-             C 34 62, 26 62, 22 57 Z`],
-    grooves: [`M 30 10 C 30 22, 30 40, 30 56`],
-    spec: `M 22 28 C 22 18, 25 13, 30 13 C 35 13, 38 18, 38 28 C 34 22, 26 22, 22 28 Z`
-  },
-
-  /* ══════════════ CHILD CANINE ════════════════════════════════ */
-  cc: {
-    crown: `M 17 56 C 16 44, 15 28, 18 14 C 21 4, 39 4, 42 14
-            C 45 28, 44 44, 43 56 C 36 61, 24 61, 17 56 Z`,
-    roots: [`M 21 57 C 20 78, 20 106, 24 128 C 25 136, 28 140, 30 140
-             C 32 140, 35 136, 36 128 C 40 106, 40 78, 39 57
-             C 35 62, 25 62, 21 57 Z`],
-    grooves: [`M 30 6 C 30 20, 30 40, 30 56`],
-    spec: `M 21 24 C 21 14, 24 8, 30 8 C 36 8, 39 14, 39 24 C 35 18, 25 18, 21 24 Z`
-  },
-
-  /* ══════════════ CHILD MOLAR ═════════════════════════════════ */
-  cm: {
-    crown: `M 10 58 C 9 46, 9 28, 11 16
-            C 13 7, 17 3, 21 2 L 24 7 L 28 2 C 32 0, 36 2, 39 7 L 42 2
-            C 46 3, 50 7, 51 16 C 53 28, 51 46, 50 58
-            C 42 64, 18 64, 10 58 Z`,
+    crown: `M 19 56 C 18 46,18 30,20 18 C 22 8,38 8,40 18
+            C 42 30,42 46,41 56 C 36 60,24 60,19 56 Z`,
     roots: [
-      `M 12 60 C 11 78, 10 104, 12 124 C 13 132, 15 136, 18 134
-       C 21 132, 23 128, 23 124 C 25 104, 26 78, 25 60
-       C 21 65, 15 65, 12 60 Z`,
-      `M 35 60 C 34 78, 33 104, 36 124 C 37 128, 39 132, 42 134
-       C 45 136, 47 132, 48 124 C 50 104, 50 78, 48 60
-       C 45 65, 39 65, 35 60 Z`
+      `M 22 58 C 21 70,21 85,24 98 C 25 105,28 109,30 109
+       C 32 109,35 105,36 98 C 39 85,39 70,38 58
+       C 34 62,26 62,22 58 Z`
     ],
-    grooves: [`M 30 3 C 30 16, 30 38, 30 58`],
-    spec: `M 14 22 C 14 10, 19 3, 30 3 C 41 3, 46 10, 46 22 C 40 14, 20 14, 14 22 Z`
+    grooves: [`M 30 10 C 30 24,30 42,30 56`],
+    spec: `M 22 28 C 22 18,25 13,30 13 C 35 13,38 18,38 28 C 34 22,26 22,22 28 Z`
+  },
+
+  /* ── CHILD CANINE ──────────────────────────────────────────── */
+  cc: {
+    crown: `M 17 56 C 16 44,15 28,18 14 C 21 4,39 4,42 14
+            C 45 28,44 44,43 56 C 36 61,24 61,17 56 Z`,
+    roots: [
+      `M 20 58 C 19 70,19 88,22 102 C 23 110,27 114,30 114
+       C 33 114,37 110,38 102 C 41 88,41 70,40 58
+       C 36 62,24 62,20 58 Z`
+    ],
+    grooves: [`M 30 6 C 30 22,30 42,30 56`],
+    spec: `M 21 24 C 21 14,24 8,30 8 C 36 8,39 14,39 24 C 35 18,25 18,21 24 Z`
+  },
+
+  /* ── CHILD MOLAR ───────────────────────────────────────────── */
+  cm: {
+    crown: `M 10 58 C 9 46,9 28,11 16 C 13 7,17 3,21 2
+            L 24 7 L 28 2 C 32 0,36 2,39 7 L 42 2
+            C 46 3,50 7,51 16 C 53 28,51 46,50 58
+            C 42 64,18 64,10 58 Z`,
+    roots: [
+      `M 12 61 C 11 72,10 88,12 101 C 13 109,16 113,19 111
+       C 22 109,23 105,24 101 C 26 88,27 72,25 61
+       C 21 65,15 65,12 61 Z`,
+      `M 35 61 C 34 72,33 88,37 101 C 37 105,39 109,41 111
+       C 44 113,47 109,48 101 C 50 88,50 72,48 61
+       C 45 65,39 65,35 61 Z`
+    ],
+    grooves: [`M 30 3 C 30 18,30 40,30 58`],
+    spec: `M 14 22 C 14 10,19 3,30 3 C 41 3,45 10,45 22 C 40 14,20 14,14 22 Z`
   }
 }
 
-/* ──────────────────────────────────────────────
-   Global SVG defs (shared gradients, rendered once)
-─────────────────────────────────────────────── */
+/* ── Shared SVG gradient defs (rendered once) ─────────────────── */
 function SharedDefs() {
   return (
     <svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }}>
       <defs>
-        {/* 3-D cylindrical gradient: dark-edge → bright-centre → dark-edge */}
+        {/* 3-D cylindrical gradient: dark edge → bright centre → dark edge */}
         <linearGradient id="toothBody" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%"   stopColor="#8E8C8A" />
           <stop offset="10%"  stopColor="#B8B6B4" />
@@ -266,49 +206,35 @@ function SharedDefs() {
           <stop offset="80%"  stopColor="#CCCAC8" />
           <stop offset="100%" stopColor="#8E8C8A" />
         </linearGradient>
-
-        {/* Vertical shading: bright top → subtle dark at root apex */}
+        {/* Vertical: bright top → slight dark at root apex */}
         <linearGradient id="toothVert" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.5" />
           <stop offset="38%"  stopColor="#FFFFFF" stopOpacity="0" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0.11" />
         </linearGradient>
-
-        {/* Specular highlight: bright oval, simulates light from upper-left */}
+        {/* Specular highlight: soft oval, simulates light from upper-left */}
         <radialGradient id="toothSpec" cx="45%" cy="32%" r="45%" fx="40%" fy="18%">
-          <stop offset="0%"  stopColor="#FFFFFF" stopOpacity="0.95" />
-          <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.30" />
+          <stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.95" />
+          <stop offset="50%"  stopColor="#FFFFFF" stopOpacity="0.30" />
           <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
         </radialGradient>
-
-        {/* Subtle groove/shadow colour */}
-        <linearGradient id="grooveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="#7A7876" />
-          <stop offset="50%"  stopColor="#5A5856" />
-          <stop offset="100%" stopColor="#7A7876" />
-        </linearGradient>
       </defs>
     </svg>
   )
 }
 
-/* ──────────────────────────────────────────────
-   Individual Tooth Renderer
-─────────────────────────────────────────────── */
+/* ── Individual Tooth ─────────────────────────────────────────── */
 function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
-  const type  = classify(num)
-  const def   = DEFS[type]
+  const type = classify(num)
+  const def  = DEFS[type]
   if (!def) return null
 
   const isExtracted = status === 'extracted'
-  const uid = `t${num}`
-
   /*
-    Upper teeth: in a standard dental chart, roots point UP (away from occlusal plane).
-    We design crowns at top (y→0) and roots going down (y→160), then for UPPER teeth
-    we rotate 180° around the vertical midpoint of the viewbox to flip them.
+    Crown at top (y→0), roots go down.
+    Upper teeth: rotate 180° around (30,70) → roots point UP, crown at bottom.
   */
-  const flip = isUpper ? 'rotate(180 30 82)' : ''
+  const flip = isUpper ? 'rotate(180 30 70)' : ''
 
   return (
     <div
@@ -321,7 +247,6 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
         zIndex: isSelected ? 10 : 1, position: 'relative'
       }}
     >
-      {/* Number label */}
       {!isUpper && (
         <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#6366F1' : '#4B5563' }}>
           {num}
@@ -336,59 +261,38 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
         opacity: isExtracted ? 0.12 : 1,
         transition: 'all 0.18s'
       }}>
-        <svg viewBox="0 0 60 164" width="100%" height="100%" overflow="visible">
+        <svg viewBox="0 0 60 140" width="100%" height="100%" overflow="visible">
           <g transform={flip}>
-
-            {/* ── Roots (drawn first, behind crown) ── */}
+            {/* Roots */}
             {def.roots.map((rPath, i) => (
               <React.Fragment key={i}>
-                {/* Root body */}
-                <path d={rPath} fill="url(#toothBody)" stroke="#898785" strokeWidth="0.5" />
-                {/* Root vertical shading */}
+                <path d={rPath} fill="url(#toothBody)" stroke="#939190" strokeWidth="0.5" />
                 <path d={rPath} fill="url(#toothVert)" />
               </React.Fragment>
             ))}
-
-            {/* ── Crown body ── */}
+            {/* Crown */}
             <path d={def.crown} fill="url(#toothBody)" stroke="#939190" strokeWidth="0.7" />
-            {/* Crown vertical shading */}
             <path d={def.crown} fill="url(#toothVert)" />
-
-            {/* ── Crown colour tint (only when status is set) ── */}
-            {crownColor && (() => {
-              // inline gradient stops via a per-tooth filter instead
-              return (
-                <>
-                  <path d={def.crown} fill={crownColor} opacity="0.72" />
-                  {/* Keep edges dark */}
-                  <path d={def.crown} fill="url(#toothBody)" opacity="0.18" />
-                </>
-              )
-            })()}
-
-            {/* ── Buccal groove / ridge lines ── */}
-            {def.grooves?.map((gPath, i) => (
-              <path
-                key={i}
-                d={gPath}
-                fill="none"
-                stroke="#88817E"
-                strokeWidth="0.9"
-                strokeLinecap="round"
-                opacity="0.28"
-              />
+            {/* Colour tint */}
+            {crownColor && (
+              <>
+                <path d={def.crown} fill={crownColor} opacity="0.72" />
+                <path d={def.crown} fill="url(#toothBody)" opacity="0.18" />
+              </>
+            )}
+            {/* Groove lines */}
+            {def.grooves?.map((gp, i) => (
+              <path key={i} d={gp} fill="none" stroke="#88817E" strokeWidth="0.9"
+                strokeLinecap="round" opacity="0.28" />
             ))}
-
-            {/* ── Specular highlight on crown ── */}
+            {/* Specular highlight */}
             <path d={def.spec} fill="url(#toothSpec)" />
-
           </g>
 
-          {/* ── Extracted X ── */}
           {isExtracted && (
             <>
-              <line x1="6" y1="8" x2="54" y2="156" stroke="#374151" strokeWidth="3.5" strokeLinecap="round" />
-              <line x1="54" y1="8" x2="6" y2="156" stroke="#374151" strokeWidth="3.5" strokeLinecap="round" />
+              <line x1="6" y1="8" x2="54" y2="132" stroke="#374151" strokeWidth="3.5" strokeLinecap="round" />
+              <line x1="54" y1="8" x2="6" y2="132" stroke="#374151" strokeWidth="3.5" strokeLinecap="round" />
             </>
           )}
         </svg>
@@ -403,9 +307,7 @@ function ToothSVG({ num, isUpper, status, crownColor, isSelected, onClick }) {
   )
 }
 
-/* ──────────────────────────────────────────────
-   5-Surface diagram
-─────────────────────────────────────────────── */
+/* ── 5-Surface Diagram ────────────────────────────────────────── */
 const SURFS = [
   { id: 'B', d: 'M 0 0 L 100 0 L 72 28 L 28 28 Z', label: 'Buccal' },
   { id: 'L', d: 'M 0 100 L 100 100 L 72 72 L 28 72 Z', label: 'Lingual' },
@@ -420,7 +322,7 @@ function SurfaceDiagram({ surfaces, activeSurface, onToggle }) {
       <svg viewBox="0 0 100 100" width={88} height={88} style={{ cursor: 'pointer' }}>
         {SURFS.map(s => {
           const stId = surfaces?.[s.id]
-          const st = TOOTH_STATUSES.find(x => x.id === stId)
+          const st   = TOOTH_STATUSES.find(x => x.id === stId)
           const isAct = activeSurface === s.id
           return (
             <g key={s.id} onClick={() => onToggle(s.id)}>
@@ -445,12 +347,10 @@ function SurfaceDiagram({ surfaces, activeSurface, onToggle }) {
   )
 }
 
-/* ──────────────────────────────────────────────
-   Main DentalChart
-─────────────────────────────────────────────── */
+/* ── Main DentalChart ─────────────────────────────────────────── */
 export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = false }) {
   const [selectedTooth, setSelectedTooth] = useState(null)
-  const [viewType, setViewType]           = useState('adult')
+  const [viewType,      setViewType]      = useState('adult')
   const [activeSurface, setActiveSurface] = useState(null)
 
   const getParsed = (number) => {
@@ -472,7 +372,7 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
   const applyStatus = (statusId) => {
     if (!selectedTooth) return
     const cur = getParsed(selectedTooth)
-    let newStatus = cur.status
+    let newStatus   = cur.status
     let newSurfaces = { ...cur.surfaces }
     if (activeSurface) {
       if (statusId === 'healthy') delete newSurfaces[activeSurface]
@@ -493,15 +393,13 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
     <div style={{
       display: 'flex',
       alignItems: isUpper ? 'flex-end' : 'flex-start',
-      justifyContent: 'center',
-      gap: 5, minWidth: 'fit-content'
+      justifyContent: 'center', gap: 5, minWidth: 'fit-content'
     }}>
       {nums.map(num => {
         const d  = getParsed(num)
         const st = TOOTH_STATUSES.find(s => s.id === d.status)
         return (
-          <ToothSVG
-            key={num} num={num} isUpper={isUpper}
+          <ToothSVG key={num} num={num} isUpper={isUpper}
             status={d.status}
             crownColor={st?.color && d.status !== 'healthy' ? st.color : null}
             isSelected={selectedTooth === num}
@@ -516,8 +414,6 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '100%' }}>
-
-      {/* Shared gradient defs */}
       <SharedDefs />
 
       {/* Toggle */}
@@ -557,11 +453,8 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
             <button onClick={() => setSelectedTooth(null)} style={{ background: 'none', border: 'none', fontSize: 22, color: '#94A3B8', cursor: 'pointer' }}>×</button>
           </div>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            <SurfaceDiagram
-              surfaces={curData?.surfaces}
-              activeSurface={activeSurface}
-              onToggle={(id) => setActiveSurface(prev => prev === id ? null : id)}
-            />
+            <SurfaceDiagram surfaces={curData?.surfaces} activeSurface={activeSurface}
+              onToggle={(id) => setActiveSurface(prev => prev === id ? null : id)} />
             <div style={{ flex: 1, minWidth: 240 }}>
               <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: '#64748B' }}>
                 {activeSurface
@@ -594,7 +487,6 @@ export default function DentalChart({ toothData = [], onUpdateTooth, readOnly = 
           </div>
         ))}
       </div>
-
     </div>
   )
 }
