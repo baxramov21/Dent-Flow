@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, User as UserIcon, Phone, Calendar, MapPin, Activity, Clock, FileText, Plus, ChevronDown, ChevronUp, MessageCircle, Gift } from 'lucide-react'
 import Link from 'next/link'
@@ -13,6 +13,7 @@ import { toggleTreatmentItemStatus } from '@/app/actions/finance'
 export default function PatientProfilePage() {
   const { id } = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const { clinic, isLoading: clinicLoading } = useClinic()
 
@@ -23,7 +24,7 @@ export default function PatientProfilePage() {
   const [dentists, setDentists] = useState([])
   
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'medical' | 'chart' | 'treatments' | 'appointments'
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview') // 'overview' | 'medical' | 'chart' | 'treatments' | 'appointments'
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   
   const [toothStatuses, setToothStatuses] = useState([])

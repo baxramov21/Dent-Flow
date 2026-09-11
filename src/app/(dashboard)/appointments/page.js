@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import { Plus, Clock, Calendar as CalendarIcon, User as UserIcon, Phone, ChevronLeft, ChevronRight, User, Play, CheckCircle, CreditCard, XCircle, Edit } from 'lucide-react'
+import { Plus, Clock, Calendar as CalendarIcon, User as UserIcon, Phone, ChevronLeft, ChevronRight, User, CheckCircle, XCircle, Edit } from 'lucide-react'
 import AppointmentForm from '@/components/AppointmentForm'
 import { useRouter } from 'next/navigation'
 
@@ -291,24 +291,15 @@ export default function AppointmentsPage() {
 
                       {/* Quick Action Buttons */}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', marginTop: 'auto', paddingTop: '4px', borderTop: '1px solid var(--border)' }}>
-                        <button onClick={() => router.push(`/appointments/${apt.id}`)} title="Boshqarish" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => router.push(`/appointments/${apt.id}`)} title="Tahrirlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={14} />
                         </button>
-                        {apt.status === 'scheduled' && (
-                          <button onClick={() => handleStatusChange(apt.id, 'in_chair')} title="Qabulni boshlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#FFF7ED', color: '#C2410C', border: '1px solid #FFEDD5', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <Play size={14} />
-                          </button>
-                        )}
-                        {apt.status === 'in_chair' && (
-                          <button onClick={() => router.push(`/appointments/${apt.id}`)} title="To'lov va Yakunlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <CreditCard size={14} />
-                          </button>
-                        )}
-                        {(apt.status === 'scheduled' || apt.status === 'in_chair') && (
-                          <button onClick={() => handleStatusChange(apt.id, 'cancelled')} title="Bekor qilish" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <XCircle size={14} />
-                          </button>
-                        )}
+                        <button onClick={() => router.push(`/patients/${apt.patients?.id}?tab=treatments`)} title="Yakunlash" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <CheckCircle size={14} />
+                        </button>
+                        <button onClick={() => handleStatusChange(apt.id, 'cancelled')} title="Bekor qilish" style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <XCircle size={14} />
+                        </button>
                       </div>
                     </div>
                   )
@@ -389,24 +380,15 @@ export default function AppointmentsPage() {
                       
                       {/* Quick Action Buttons for Week View */}
                       <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '4px', marginTop: '2px', paddingTop: '4px', borderTop: '1px solid var(--border)' }}>
-                        <button onClick={() => router.push(`/appointments/${apt.id}`)} title="Boshqarish" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <button onClick={() => router.push(`/appointments/${apt.id}`)} title="Tahrirlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}>
                           <Edit size={12} />
                         </button>
-                        {apt.status === 'scheduled' && (
-                          <button onClick={() => handleStatusChange(apt.id, 'in_chair')} title="Qabulni boshlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#FFF7ED', color: '#C2410C', border: '1px solid #FFEDD5', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <Play size={12} />
-                          </button>
-                        )}
-                        {apt.status === 'in_chair' && (
-                          <button onClick={() => router.push(`/appointments/${apt.id}`)} title="To'lov va Yakunlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <CreditCard size={12} />
-                          </button>
-                        )}
-                        {(apt.status === 'scheduled' || apt.status === 'in_chair') && (
-                          <button onClick={() => handleStatusChange(apt.id, 'cancelled')} title="Bekor qilish" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <XCircle size={12} />
-                          </button>
-                        )}
+                        <button onClick={() => router.push(`/patients/${apt.patients?.id}?tab=treatments`)} title="Yakunlash" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <CheckCircle size={12} />
+                        </button>
+                        <button onClick={() => handleStatusChange(apt.id, 'cancelled')} title="Bekor qilish" style={{ padding: '4px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <XCircle size={12} />
+                        </button>
                       </div>
                     </div>
                   )
