@@ -513,6 +513,18 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
                     setNewPatientData(prev => ({ ...prev, date_of_birth: `${year}-${month}-${day}` }));
                   }}
                   onChangeRaw={(e) => {
+                    let val = e.target.value.replace(/\D/g, '');
+                    if (val.length > 8) val = val.substring(0, 8);
+                    
+                    let formatted = val;
+                    if (val.length > 2) {
+                       formatted = val.substring(0, 2) + '.' + val.substring(2);
+                    }
+                    if (val.length > 4) {
+                       formatted = val.substring(0, 2) + '.' + val.substring(2, 4) + '.' + val.substring(4);
+                    }
+                    e.target.value = formatted;
+
                     if (!e.target.value) {
                       setNewPatientData(prev => ({ ...prev, date_of_birth: '' }));
                     }
@@ -524,7 +536,7 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
                   showMonthDropdown
                   dropdownMode="select"
                   isClearable
-                  customInput={<input style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box', backgroundColor: 'var(--bg-card)' }} />}
+                  customInput={<input maxLength={10} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box', backgroundColor: 'var(--bg-card)' }} />}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
