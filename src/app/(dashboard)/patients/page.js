@@ -23,44 +23,44 @@ export default function PatientsPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
+  const fetchPatients = async () => {
     if (clinicLoading) return
     if (!clinic) return
+    setLoading(true)
+    try {
+      let query = supabase
+        .from('patients')
+        .select('*, appointments(start_time, status), treatment_plans(id, status, created_at, treatment_items(status))')
+        .eq('clinic_id', clinic.id)
 
-    async function fetchPatients() {
-      setLoading(true)
-      try {
-        let query = supabase
-          .from('patients')
-          .select('*, appointments(start_time, status), treatment_plans(id, status, created_at, treatment_items(status))')
-          .eq('clinic_id', clinic.id)
+      const { data, error } = await query
 
-        const { data, error } = await query
-
-        if (error) throw error
+      if (error) throw error
+      
+      // Compute last/next visits
+      const enhancedData = (data || []).map(patient => {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         
-        // Compute last/next visits
-        const enhancedData = (data || []).map(patient => {
-          const now = new Date();
-          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          
-          const pastApps = (patient.appointments || []).filter(a => a.status === 'completed' || new Date(a.start_time) < startOfToday).sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
-          const futureApps = (patient.appointments || []).filter(a => a.status !== 'completed' && new Date(a.start_time) >= startOfToday).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
-          
-          return {
-            ...patient,
-            lastVisit: pastApps.length > 0 ? pastApps[0].start_time : null,
-            nextVisit: futureApps.length > 0 ? futureApps[0].start_time : null
-          }
-        })
+        const pastApps = (patient.appointments || []).filter(a => a.status === 'completed' || new Date(a.start_time) < startOfToday).sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
+        const futureApps = (patient.appointments || []).filter(a => a.status !== 'completed' && new Date(a.start_time) >= startOfToday).sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
         
-        setPatients(enhancedData)
-      } catch (error) {
-        console.error('Bemorlarni yuklashda xatolik:', error)
-      } finally {
-        setLoading(false)
-      }
+        return {
+          ...patient,
+          lastVisit: pastApps.length > 0 ? pastApps[0].start_time : null,
+          nextVisit: futureApps.length > 0 ? futureApps[0].start_time : null
+        }
+      })
+      
+      setPatients(enhancedData)
+    } catch (error) {
+      console.error('Bemorlarni yuklashda xatolik:', error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchPatients()
   }, [clinic, clinicLoading])
 
@@ -330,7 +330,7 @@ export default function PatientsPage() {
                defaultIsNewPatient={true}
                onSuccess={() => {
                  setIsAppointmentModalOpen(false)
-                 window.location.reload() // Or re-fetch patients
+                 fetchPatients()
                }}
                onCancel={() => setIsAppointmentModalOpen(false)}
             />
@@ -354,7 +354,7 @@ export default function PatientsPage() {
               patientToEdit={editingPatient}
               onSuccess={() => {
                 setEditingPatient(null)
-                window.location.reload()
+                fetchPatients()
               }}
               onCancel={() => setEditingPatient(null)}
             />

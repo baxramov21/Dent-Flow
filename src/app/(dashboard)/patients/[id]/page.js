@@ -735,7 +735,7 @@ export default function PatientProfilePage() {
               patientToEdit={patient}
               onSuccess={() => {
                 setIsEditingProfile(false)
-                window.location.reload()
+                fetchPatientData()
               }}
               onCancel={() => setIsEditingProfile(false)}
             />
