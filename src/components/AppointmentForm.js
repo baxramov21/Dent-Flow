@@ -7,7 +7,8 @@ import DatePicker, { registerLocale } from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 import uz from 'date-fns/locale/uz'
 import CheckoutView from '@/components/CheckoutView'
-import { Calendar, CreditCard } from 'lucide-react'
+import Forma046Tab from '@/components/Forma046Tab'
+import { Calendar, CreditCard, FileText } from 'lucide-react'
 
 registerLocale('uz', uz)
 
@@ -400,6 +401,18 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
           >
             <CreditCard size={16} /> Muolajalar va To'lov
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('forma046')}
+            style={{
+              padding: '12px 24px', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '14px', fontWeight: '600',
+              border: 'none', borderBottom: activeTab === 'forma046' ? '2px solid var(--accent)' : '2px solid transparent',
+              color: activeTab === 'forma046' ? 'var(--accent)' : 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
+            }}
+          >
+            <FileText size={16} /> 046 Forma
+          </button>
         </div>
       )}
 
@@ -784,6 +797,13 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
              if(onSuccess) onSuccess()
           }}
           onClose={onCancel}
+        />
+      )}
+
+      {activeTab === 'forma046' && patientToEdit && (
+        <Forma046Tab
+          patient={patientToEdit}
+          clinicId={clinic.id}
         />
       )}
     </div>
