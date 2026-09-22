@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Save, Printer, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react'
+import { FileText, Save, Printer, AlertCircle, CheckCircle, ChevronDown, Download } from 'lucide-react'
 
 const TOOTH_STATUSES = {
-  healthy: { label: 'Sog\'lom', color: '#10B981', bg: '#D1FAE5' },
+  healthy: { label: 'Sog\'lom', color: '#CBD5E1', bg: '#FFFFFF' },
   caries: { label: 'Kariyes', color: '#F59E0B', bg: '#FEF3C7' },
   filled: { label: 'Plomba', color: '#3B82F6', bg: '#DBEAFE' },
   crown: { label: 'Koronka', color: '#8B5CF6', bg: '#EDE9FE' },
@@ -179,6 +179,30 @@ export default function Forma046Tab({ patient, clinicId }) {
     }
   }
 
+  const handleDownloadPDF = async () => {
+    try {
+      const html2pdf = (await import('html2pdf.js')).default
+      const element = document.getElementById('forma-046-print-area')
+      
+      const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `046_Forma_${cardData.card_number || 'Bemor'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }
+      
+      // Add a temporary class to hide elements during PDF generation
+      element.classList.add('pdf-generating')
+      await html2pdf().from(element).set(opt).save()
+      element.classList.remove('pdf-generating')
+      
+    } catch (err) {
+      console.error('PDF yaratishda xatolik:', err)
+      alert('PDF yuklab olishda xatolik yuz berdi')
+    }
+  }
+
   const handlePrint = () => {
     window.print()
   }
@@ -286,9 +310,9 @@ export default function Forma046Tab({ patient, clinicId }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+    <div id="forma-046-print-area" style={{ display: 'flex', flexDirection: 'column', gap: '0', backgroundColor: 'var(--bg-card)' }}>
       {/* Floating Save Bar */}
-      <div style={{
+      <div className="no-print" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -322,6 +346,29 @@ export default function Forma046Tab({ patient, clinicId }) {
           )}
           <button
             type="button"
+            className="no-print"
+            onClick={handleDownloadPDF}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Download size={16} />
+            PDF Yuklash
+          </button>
+          <button
+            type="button"
+            className="no-print"
             onClick={handlePrint}
             style={{
               padding: '10px 16px',
@@ -343,6 +390,7 @@ export default function Forma046Tab({ patient, clinicId }) {
           </button>
           <button
             type="button"
+            className="no-print"
             onClick={handleSave}
             disabled={saving}
             style={{
@@ -711,7 +759,27 @@ export default function Forma046Tab({ patient, clinicId }) {
       </div>
 
       {/* Bottom Save Button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '8px 0 24px' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '8px 0 24px' }}>
+        <button
+          type="button"
+          onClick={handleDownloadPDF}
+          style={{
+            padding: '12px 24px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border)',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <Download size={16} />
+          PDF Yuklash
+        </button>
         <button
           type="button"
           onClick={handlePrint}
@@ -765,8 +833,32 @@ export default function Forma046Tab({ patient, clinicId }) {
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
+        .pdf-generating .no-print {
+          display: none !important;
+        }
         @media print {
-          nav, .sidebar, button { display: none !important; }
+          body * {
+            visibility: hidden;
+          }
+          #forma-046-print-area, #forma-046-print-area * {
+            visibility: visible;
+          }
+          #forma-046-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+          
+          /* Override the fixed modal styles during print to avoid blank pages */
+          div[style*="position: fixed"] {
+            position: absolute !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
         }
       `}</style>
     </div>
