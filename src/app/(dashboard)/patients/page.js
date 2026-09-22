@@ -30,7 +30,7 @@ export default function PatientsPage() {
     try {
       let query = supabase
         .from('patients')
-        .select('*, appointments(start_time, status), treatment_plans(id, status, created_at, staff(full_name), treatment_items(status))')
+        .select('*, appointments(start_time, status), treatment_plans(id, dentist_id, status, created_at, staff(full_name), treatment_items(status))')
         .eq('clinic_id', clinic.id)
 
       const { data, error } = await query

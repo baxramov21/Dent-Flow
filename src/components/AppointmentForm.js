@@ -81,7 +81,19 @@ export default function AppointmentForm({ initialData = null, patientToEdit = nu
 
         // Set defaults if available
         if (staffRes.data && staffRes.data.length > 0) {
-          setFormData(prev => ({ ...prev, dentist_id: staffRes.data[0].id }))
+          let assignedDentistId = null;
+          if (patientToEdit?.treatment_plans?.length > 0) {
+            // Find active plan or fallback to the most recent plan
+            const activePlan = patientToEdit.treatment_plans.find(p => p.status === 'active') || patientToEdit.treatment_plans[0];
+            if (activePlan?.dentist_id) {
+               assignedDentistId = activePlan.dentist_id;
+            }
+          }
+          
+          setFormData(prev => ({ 
+            ...prev, 
+            dentist_id: prev.dentist_id || assignedDentistId || staffRes.data[0].id 
+          }))
         }
       } catch (err) {
         console.error('Error loading form data:', err)
