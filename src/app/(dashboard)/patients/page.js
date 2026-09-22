@@ -127,7 +127,7 @@ export default function PatientsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className={editingPatient ? 'print-hide' : ''} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Bemorlar</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Klinika bemorlari ro'yxati (Jami: {patients.length})</p>
@@ -152,7 +152,7 @@ export default function PatientsPage() {
         </button>
       </div>
 
-      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className={`card ${editingPatient ? 'print-hide' : ''}`} style={{ padding: '0', overflow: 'hidden' }}>
         {/* Filters Bar */}
         <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, position: 'relative', minWidth: '200px' }}>

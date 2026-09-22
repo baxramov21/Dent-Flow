@@ -291,3 +291,23 @@ main {
   background-color: var(--accent-hover) !important;
 }
 
+/* Global Print Styles to fix 19-page bugs */
+@media print {
+  .print-hide,
+  .sidebar,
+  nav,
+  header {
+    display: none !important;
+  }
+  
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
