@@ -30,7 +30,7 @@ export default function PatientsPage() {
     try {
       let query = supabase
         .from('patients')
-        .select('*, appointments(start_time, status), treatment_plans(id, status, created_at, treatment_items(status))')
+        .select('*, appointments(start_time, status), treatment_plans(id, status, created_at, staff(full_name), treatment_items(status))')
         .eq('clinic_id', clinic.id)
 
       const { data, error } = await query
@@ -276,6 +276,9 @@ export default function PatientsPage() {
                               <div key={plan.id} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: completed === total && total > 0 ? '#10B981' : '#F59E0B' }} />
                                 {completed}/{total} bajarildi
+                                {plan.staff?.full_name && (
+                                  <span style={{ color: 'var(--text-muted)' }}> (Dr. {plan.staff.full_name})</span>
+                                )}
                               </div>
                             )
                           })
