@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const formattedEmail = `${username}@dentflow.uz`
+    const formattedEmail = `${username.trim().toLowerCase()}@dentflow.uz`
 
     const { error } = await supabase.auth.signInWithPassword({
       email: formattedEmail,

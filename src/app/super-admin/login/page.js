@@ -19,7 +19,7 @@ export default function SuperAdminLoginPage() {
     setError(null)
 
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     })
 
