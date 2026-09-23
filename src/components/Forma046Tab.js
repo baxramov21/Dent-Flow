@@ -496,11 +496,11 @@ export default function Forma046Tab({ patient, clinicId }) {
         </div>
       </div>
 
-      {/* 3. Tashqi Ko'rik */}
+      {/* 3. Ko'rik */}
       <div style={sectionStyle}>
         <div style={sectionTitleStyle}>
           <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
-          Tashqi ko'rik
+          Ko'rik
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
@@ -512,19 +512,6 @@ export default function Forma046Tab({ patient, clinicId }) {
             >
               <option value="">Tanlang...</option>
               {FACIAL_SYMMETRY_OPTIONS.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Limfa tugunlari</label>
-            <select
-              style={selectStyle}
-              value={cardData.lymph_nodes}
-              onChange={(e) => handleFieldChange('lymph_nodes', e.target.value)}
-            >
-              <option value="">Tanlang...</option>
-              {LYMPH_NODES_OPTIONS.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
