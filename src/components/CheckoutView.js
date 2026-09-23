@@ -144,6 +144,24 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
     setItems([...items, newItem])
   }
 
+  const handleRemoveItem = async (itemId, isNew) => {
+    if (!confirm("Haqiqatan ham bu xizmatni o'chirmoqchimisiz?")) return;
+    
+    if (isNew) {
+      setItems(items.filter(i => i.id !== itemId));
+    } else {
+      try {
+        const { error } = await supabase.from('treatment_items').delete().eq('id', itemId);
+        if (error) throw error;
+        setItems(items.filter(i => i.id !== itemId));
+        // Remove commission if any
+        await supabase.from('doctor_commissions').delete().eq('treatment_item_id', itemId);
+      } catch (err) {
+        alert("O'chirishda xatolik: " + err.message);
+      }
+    }
+  }
+
   const handleAddNewCustomService = async () => {
     if (!newServiceName.trim() || !newServicePrice) return
     const priceValue = parseInt(newServicePrice)
@@ -447,13 +465,13 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
                         style={{ cursor: 'pointer' }}
                       />
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '500', color: item.status === 'completed' ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
                           {item.services?.name}
                         </span>
                         {item.status === 'completed' && <span style={{ fontSize: '11px', color: '#065F46' }}>Avvalgi qabulda yakunlangan</span>}
                       </div>
                       
-                      {item.selected && item.status !== 'completed' && (
+                      {item.selected && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Narx (so'm):</span>
                           <input 
@@ -464,6 +482,15 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
                           />
                         </div>
                       )}
+
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveItem(item.id, item.isNew)} 
+                        style={{ padding: '6px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '8px' }}
+                        title="O'chirish"
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
                   ))}
               </div>
