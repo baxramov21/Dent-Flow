@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -19,13 +21,21 @@ export default function LoginPage() {
 
     const formattedEmail = `${username.trim().toLowerCase()}@dentflow.uz`
 
-    const { error } = await supabase.auth.signInWithPassword({
+    let authRes = await supabase.auth.signInWithPassword({
       email: formattedEmail,
       password,
     })
 
-    if (error) {
-      setError(error.message)
+    // If case-sensitive login fails, try with lowercase (to support case-insensitive login requirement)
+    if (authRes.error && authRes.error.message.includes('Invalid login credentials')) {
+      authRes = await supabase.auth.signInWithPassword({
+        email: formattedEmail,
+        password: password.toLowerCase(),
+      })
+    }
+
+    if (authRes.error) {
+      setError(authRes.error.message)
       setLoading(false)
     } else {
       router.push('/dashboard')
@@ -68,20 +78,39 @@ export default function LoginPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <label htmlFor="password" style={{ fontSize: '14px', fontWeight: '500' }}>Password</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border)',
-              fontSize: '14px',
-              outline: 'none'
-            }}
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px 40px 10px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                fontSize: '14px',
+                outline: 'none'
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)'
+              }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         <button
