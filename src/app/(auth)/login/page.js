@@ -21,21 +21,13 @@ export default function LoginPage() {
 
     const formattedEmail = `${username.trim().toLowerCase()}@dentflow.uz`
 
-    let authRes = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: formattedEmail,
       password,
     })
 
-    // If case-sensitive login fails, try with lowercase (to support case-insensitive login requirement)
-    if (authRes.error && authRes.error.message.includes('Invalid login credentials')) {
-      authRes = await supabase.auth.signInWithPassword({
-        email: formattedEmail,
-        password: password.toLowerCase(),
-      })
-    }
-
-    if (authRes.error) {
-      setError(authRes.error.message)
+    if (error) {
+      setError(error.message)
       setLoading(false)
     } else {
       router.push('/dashboard')
