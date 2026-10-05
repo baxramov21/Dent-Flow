@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff } from 'lucide-react'
+import { loginAction } from '@/app/actions/auth'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -11,8 +10,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -22,39 +19,11 @@ export default function LoginPage() {
     const trimmedUsername = username.trim().toLowerCase()
     const formattedEmail = trimmedUsername.includes('@') ? trimmedUsername : `${trimmedUsername}@dentflow.uz`
 
-    let authRes = await supabase.auth.signInWithPassword({
-      email: formattedEmail,
-      password,
-    })
+    const result = await loginAction(formattedEmail, password)
 
-    // If login fails, try common case variations to make it effectively case-insensitive
-    if (authRes.error && authRes.error.message.includes('Invalid login credentials')) {
-      const variations = [
-        password.toLowerCase(),
-        password.charAt(0).toUpperCase() + password.slice(1).toLowerCase(),
-        password.toUpperCase()
-      ];
-
-      for (const variant of variations) {
-        if (variant === password) continue;
-        
-        const retryRes = await supabase.auth.signInWithPassword({
-          email: formattedEmail,
-          password: variant,
-        });
-
-        if (!retryRes.error) {
-          authRes = retryRes;
-          break;
-        }
-      }
-    }
-
-    if (authRes.error) {
-      setError(authRes.error.message)
+    if (result?.error) {
+      setError(result.error)
       setLoading(false)
-    } else {
-      window.location.href = '/dashboard'
     }
   }
 
