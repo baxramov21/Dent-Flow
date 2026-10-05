@@ -27,8 +27,7 @@ export default function SuperAdminLoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push('/super-admin')
-      router.refresh()
+      window.location.href = '/super-admin'
     }
   }
 
