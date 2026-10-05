@@ -19,7 +19,8 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const formattedEmail = `${username.trim().toLowerCase()}@dentflow.uz`
+    const trimmedUsername = username.trim().toLowerCase()
+    const formattedEmail = trimmedUsername.includes('@') ? trimmedUsername : `${trimmedUsername}@dentflow.uz`
 
     let authRes = await supabase.auth.signInWithPassword({
       email: formattedEmail,
@@ -53,8 +54,7 @@ export default function LoginPage() {
       setError(authRes.error.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
-      router.refresh()
+      window.location.href = '/dashboard'
     }
   }
 

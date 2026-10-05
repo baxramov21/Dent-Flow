@@ -7,10 +7,13 @@ import Sidebar from '@/components/Sidebar'
 
 export default async function DashboardLayout({ children }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   if (!user) {
+    console.log('[DashboardLayout] No user found. Redirecting to /login. Error:', error)
     redirect('/login')
+  } else {
+    console.log('[DashboardLayout] User found:', user.email)
   }
 
   return (
