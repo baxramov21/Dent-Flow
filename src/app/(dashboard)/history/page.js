@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import { History, CreditCard, Search, Calendar, User, FileText, Download, Filter } from 'lucide-react'
+import { History, CreditCard, Search, Calendar, User, FileText, Download, Filter, Trash2, AlertTriangle } from 'lucide-react'
 import AppleSelect from '@/components/AppleSelect'
 import AppleDateRange from '@/components/AppleDateRange'
+import { deleteProcedure, deletePayment } from '@/app/actions/finance'
 
 const DATE_PRESETS = [
   { value: 'all_time', label: 'Barcha vaqt' },
@@ -196,6 +197,33 @@ export default function HistoryPage() {
     }
   }
 
+  const [deletingId, setDeletingId] = useState(null)
+
+  const handleDeleteProcedure = async (proc) => {
+    const name = proc.services?.name_uz || proc.services?.name || 'Muolaja'
+    if (!confirm(`"${name}" muolajasini o'chirmoqchimisiz?\n\nUnga tegishli to'lov, shifokor komissiyasi va bonus ballari ham o'chiriladi.`)) return
+    setDeletingId(proc.id)
+    const res = await deleteProcedure(proc.id)
+    setDeletingId(null)
+    if (res.error) {
+      alert(res.error)
+      return
+    }
+    fetchData()
+  }
+
+  const handleDeletePayment = async (pay) => {
+    if (!confirm(`${pay.amount?.toLocaleString()} UZS to'lovini o'chirmoqchimisiz?\n\nBemorning shu to'lovdan olgan bonus ballari ham o'chiriladi.`)) return
+    setDeletingId(pay.id)
+    const res = await deletePayment(pay.id)
+    setDeletingId(null)
+    if (res.error) {
+      alert(res.error)
+      return
+    }
+    fetchData()
+  }
+
   const filteredProcedures = procedures.filter(p => {
     const q = searchQuery.toLowerCase()
     const patientName = p.treatment_plans?.patients?.full_name?.toLowerCase() || ''
@@ -256,6 +284,17 @@ export default function HistoryPage() {
     const q = searchQuery.toLowerCase()
     return d.patient?.full_name?.toLowerCase().includes(q) || d.patient?.phone?.includes(q)
   })
+
+  // Patients who paid more than their completed procedures cost
+  // (usually payments left behind after a procedure was deleted).
+  // Only meaningful when looking at the full, unfiltered history.
+  const showOverpaid = datePreset === 'all_time' && selectedDentist === 'all'
+  const overpaid = showOverpaid
+    ? Object.values(patientDebts)
+        .map(d => ({ ...d, extra: d.totalPaid - d.totalBilled }))
+        .filter(d => d.extra > 0)
+        .sort((a, b) => b.extra - a.extra)
+    : []
 
   // KPIs
   const totalRevenue = payments.reduce((acc, p) => acc + p.amount, 0)
@@ -427,13 +466,16 @@ export default function HistoryPage() {
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Muolaja</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Shifokor</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Narxi</th>
+                {permissions?.canViewFinancials && (
+                  <th style={{ padding: '16px 24px', fontWeight: '600', textAlign: 'right' }}>Amallar</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
               ) : filteredProcedures.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Muolajalar topilmadi</td></tr>
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Muolajalar topilmadi</td></tr>
               ) : (
                 filteredProcedures.map(p => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -468,6 +510,18 @@ export default function HistoryPage() {
                     <td style={{ padding: '16px 24px', fontWeight: '600' }}>
                       {(p.price_override || 0).toLocaleString()} UZS
                     </td>
+                    {permissions?.canViewFinancials && (
+                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        <button
+                          onClick={() => handleDeleteProcedure(p)}
+                          disabled={deletingId === p.id}
+                          title="O'chirish"
+                          style={{ padding: '6px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444', opacity: deletingId === p.id ? 0.5 : 1 }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -485,13 +539,16 @@ export default function HistoryPage() {
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Davolash rejasi</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>To'lov turi</th>
                 <th style={{ padding: '16px 24px', fontWeight: '600' }}>Summa</th>
+                {permissions?.canViewFinancials && (
+                  <th style={{ padding: '16px 24px', fontWeight: '600', textAlign: 'right' }}>Amallar</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
               ) : filteredPayments.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>To'lovlar topilmadi</td></tr>
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>To'lovlar topilmadi</td></tr>
               ) : (
                 filteredPayments.map(p => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -519,6 +576,18 @@ export default function HistoryPage() {
                     <td style={{ padding: '16px 24px', fontWeight: '600', color: '#10B981' }}>
                       +{p.amount?.toLocaleString()} UZS
                     </td>
+                    {permissions?.canViewFinancials && (
+                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        <button
+                          onClick={() => handleDeletePayment(p)}
+                          disabled={deletingId === p.id}
+                          title="To'lovni o'chirish"
+                          style={{ padding: '6px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444', opacity: deletingId === p.id ? 0.5 : 1 }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -528,119 +597,173 @@ export default function HistoryPage() {
 
         {/* Debts Table */}
         {activeTab === 'debts' && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontSize: '13px', textTransform: 'uppercase' }}>
-                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Bemor</th>
-                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Shifokor</th>
-                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Jami hisoblangan</th>
-                <th style={{ padding: '16px 24px', fontWeight: '600' }}>To'langan</th>
-                <th style={{ padding: '16px 24px', fontWeight: '600' }}>Qolgan Qarz</th>
-                <th style={{ padding: '16px 24px', fontWeight: '600', textAlign: 'right' }}>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
-              ) : filteredDebtors.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Qarzdor bemorlar yo'q</td></tr>
-              ) : (
-                filteredDebtors.map(d => {
-                  const isExpanded = expandedDebtorId === d.patient.id;
-                  const doctors = [...new Set(d.procedures.map(p => p.treatment_plans?.staff?.full_name).filter(Boolean))].join(', ');
-                  return (
-                    <React.Fragment key={d.patient.id}>
-                      <tr 
-                        onClick={() => setExpandedDebtorId(isExpanded ? null : d.patient.id)}
-                        style={{ borderBottom: isExpanded ? 'none' : '1px solid var(--border)', cursor: 'pointer', backgroundColor: isExpanded ? 'var(--bg-hover)' : 'transparent' }}
-                      >
-                        <td style={{ padding: '16px 24px', fontWeight: '500' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              {d.patient.full_name}
-                              <span style={{ color: 'var(--text-muted)' }}>{isExpanded ? '▼' : '▶'}</span>
-                            </span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{d.patient.phone}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-                          {doctors || 'Noma\'lum'}
-                        </td>
-                        <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
-                          {d.totalBilled.toLocaleString()} UZS
-                        </td>
-                        <td style={{ padding: '16px 24px', color: '#10B981', fontWeight: '500' }}>
-                          {d.totalPaid.toLocaleString()} UZS
-                        </td>
-                        <td style={{ padding: '16px 24px', fontWeight: 'bold', color: '#EF4444' }}>
-                          {d.debt.toLocaleString()} UZS
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPayDebtModal({ isOpen: true, patient: d.patient, maxAmount: d.debt })
-                              setDebtAmount(d.debt.toString())
-                              setDebtMethod('cash')
-                            }}
-                            style={{ padding: '6px 12px', backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
-                          >
-                            To'lov qo'shish
-                          </button>
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
-                          <td colSpan={6} style={{ padding: '24px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                              {/* Left column: Procedures */}
-                              <div style={{ backgroundColor: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                                <h4 style={{ fontWeight: '600', marginBottom: '12px', fontSize: '14px', color: 'var(--text-primary)' }}>Tolanmagan muolajalar</h4>
-                                {d.procedures.length === 0 ? (
-                                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Muolajalar yo'q</div>
-                                ) : (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {d.procedures.map(proc => (
-                                      <div key={proc.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                          <span style={{ fontWeight: '500' }}>{proc.services?.name_uz || proc.services?.name} {proc.tooth_number ? `(Tish: ${proc.tooth_number})` : ''}</span>
-                                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{new Date(proc.completed_at).toLocaleDateString()} • Shifokor: {proc.treatment_plans?.staff?.full_name || 'Noma\'lum'}</span>
-                                        </div>
-                                        <span style={{ fontWeight: '600' }}>{proc.price_override?.toLocaleString()} UZS</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              {/* Right column: Payments */}
-                              <div style={{ backgroundColor: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                                <h4 style={{ fontWeight: '600', marginBottom: '12px', fontSize: '14px', color: 'var(--text-primary)' }}>To'lovlar tarixi</h4>
-                                {d.payments.length === 0 ? (
-                                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>To'lovlar yo'q</div>
-                                ) : (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {d.payments.map(pay => (
-                                      <div key={pay.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                          <span style={{ fontWeight: '500', textTransform: 'capitalize' }}>{pay.payment_method === 'cash' ? 'Naqd' : pay.payment_method === 'card' ? 'Karta' : 'O\'tkazma'}</span>
-                                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{new Date(pay.paid_at).toLocaleDateString()}</span>
-                                        </div>
-                                        <span style={{ fontWeight: '600', color: '#10B981' }}>{pay.amount?.toLocaleString()} UZS</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
+          <div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontSize: '13px', textTransform: 'uppercase' }}>
+                  <th style={{ padding: '16px 24px', fontWeight: '600' }}>Bemor</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600' }}>Shifokor</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600' }}>Jami hisoblangan</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600' }}>To'langan</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600' }}>Qolgan Qarz</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600', textAlign: 'right' }}>Amallar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Yuklanmoqda...</td></tr>
+                ) : filteredDebtors.length === 0 ? (
+                  <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Qarzdor bemorlar yo'q</td></tr>
+                ) : (
+                  filteredDebtors.map(d => {
+                    const isExpanded = expandedDebtorId === d.patient.id;
+                    const doctors = [...new Set(d.procedures.map(p => p.treatment_plans?.staff?.full_name).filter(Boolean))].join(', ');
+                    return (
+                      <React.Fragment key={d.patient.id}>
+                        <tr 
+                          onClick={() => setExpandedDebtorId(isExpanded ? null : d.patient.id)}
+                          style={{ borderBottom: isExpanded ? 'none' : '1px solid var(--border)', cursor: 'pointer', backgroundColor: isExpanded ? 'var(--bg-hover)' : 'transparent' }}
+                        >
+                          <td style={{ padding: '16px 24px', fontWeight: '500' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {d.patient.full_name}
+                                <span style={{ color: 'var(--text-muted)' }}>{isExpanded ? '▼' : '▶'}</span>
+                              </span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{d.patient.phone}</span>
                             </div>
                           </td>
+                          <td style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                            {doctors || 'Noma\'lum'}
+                          </td>
+                          <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
+                            {d.totalBilled.toLocaleString()} UZS
+                          </td>
+                          <td style={{ padding: '16px 24px', color: '#10B981', fontWeight: '500' }}>
+                            {d.totalPaid.toLocaleString()} UZS
+                          </td>
+                          <td style={{ padding: '16px 24px', fontWeight: 'bold', color: '#EF4444' }}>
+                            {d.debt.toLocaleString()} UZS
+                          </td>
+                          <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPayDebtModal({ isOpen: true, patient: d.patient, maxAmount: d.debt })
+                                setDebtAmount(d.debt.toString())
+                                setDebtMethod('cash')
+                              }}
+                              style={{ padding: '6px 12px', backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                            >
+                              To'lov qo'shish
+                            </button>
+                          </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        {isExpanded && (
+                          <tr style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+                            <td colSpan={6} style={{ padding: '24px' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                {/* Left column: Procedures */}
+                                <div style={{ backgroundColor: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                                  <h4 style={{ fontWeight: '600', marginBottom: '12px', fontSize: '14px', color: 'var(--text-primary)' }}>Tolanmagan muolajalar</h4>
+                                  {d.procedures.length === 0 ? (
+                                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Muolajalar yo'q</div>
+                                  ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      {d.procedures.map(proc => (
+                                        <div key={proc.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+                                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: '500' }}>{proc.services?.name_uz || proc.services?.name} {proc.tooth_number ? `(Tish: ${proc.tooth_number})` : ''}</span>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{new Date(proc.completed_at).toLocaleDateString()} • Shifokor: {proc.treatment_plans?.staff?.full_name || 'Noma\'lum'}</span>
+                                          </div>
+                                          <span style={{ fontWeight: '600' }}>{proc.price_override?.toLocaleString()} UZS</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Right column: Payments */}
+                                <div style={{ backgroundColor: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                                  <h4 style={{ fontWeight: '600', marginBottom: '12px', fontSize: '14px', color: 'var(--text-primary)' }}>To'lovlar tarixi</h4>
+                                  {d.payments.length === 0 ? (
+                                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>To'lovlar yo'q</div>
+                                  ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      {d.payments.map(pay => (
+                                        <div key={pay.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+                                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: '500', textTransform: 'capitalize' }}>{pay.payment_method === 'cash' ? 'Naqd' : pay.payment_method === 'card' ? 'Karta' : 'O\'tkazma'}</span>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{new Date(pay.paid_at).toLocaleDateString()}</span>
+                                          </div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontWeight: '600', color: '#10B981' }}>{pay.amount?.toLocaleString()} UZS</span>
+                                            {permissions?.canViewFinancials && (
+                                              <button
+                                                onClick={() => handleDeletePayment(pay)}
+                                                disabled={deletingId === pay.id}
+                                                title="To'lovni o'chirish"
+                                                style={{ padding: '4px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444' }}
+                                              >
+                                                <Trash2 size={14} />
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+
+            {/* Overpaid / Orphan Payments Section */}
+            {overpaid.length > 0 && (
+              <div style={{ borderTop: '2px solid var(--border)', padding: '20px 24px', backgroundColor: '#FFFBEB' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#B45309', fontWeight: '600', fontSize: '15px' }}>
+                  <AlertTriangle size={18} />
+                  <span>Ortiqcha to'lovlar (Muolajasi o'chirilgan yoki bekor qilingan to'lovlar)</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#92400E', marginBottom: '16px' }}>
+                  Quyidagi bemorlarda bajarilgan muolajalar narxiga qaraganda ko'proq to'lov qayd etilgan. Umumiy tushumni to'g'rilash uchun ortiqcha to'lovlarni o'chirishingiz mumkin:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {overpaid.map(o => (
+                    <div key={o.patient.id} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid #FDE68A', borderRadius: 'var(--radius-sm)', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '14px' }}>{o.patient.full_name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          Bajarilgan muolajalar: <strong>{o.totalBilled.toLocaleString()} UZS</strong> • Qayd etilgan to'lov: <strong>{o.totalPaid.toLocaleString()} UZS</strong> • Farq: <strong style={{ color: '#D97706' }}>+{o.extra.toLocaleString()} UZS</strong>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {o.payments.map(pay => (
+                          <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '13px' }}>
+                            <span>{new Date(pay.paid_at).toLocaleDateString('uz-UZ')}: <strong>{pay.amount?.toLocaleString()} UZS</strong></span>
+                            <button
+                              onClick={() => handleDeletePayment(pay)}
+                              disabled={deletingId === pay.id}
+                              title="Shu to'lovni o'chirish"
+                              style={{ padding: '4px 6px', backgroundColor: '#FEE2E2', border: 'none', borderRadius: '4px', cursor: 'pointer', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '500' }}
+                            >
+                              <Trash2 size={13} /> O'chirish
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
