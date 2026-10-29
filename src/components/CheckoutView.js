@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { X, DollarSign, CheckCircle, Gift } from 'lucide-react'
+import { deleteProcedure } from '@/app/actions/finance'
 
 export default function CheckoutView({ appointment, patient, clinicId, dentistId, onSuccess, onClose }) {
   const supabase = createClient()
@@ -145,21 +146,24 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
   }
 
   const handleRemoveItem = async (itemId, isNew) => {
-    if (!confirm("Haqiqatan ham bu xizmatni o'chirmoqchimisiz?")) return;
-    
     if (isNew) {
+      if (!confirm("Haqiqatan ham bu xizmatni o'chirmoqchimisiz?")) return;
       setItems(items.filter(i => i.id !== itemId));
-    } else {
-      try {
-        const { error } = await supabase.from('treatment_items').delete().eq('id', itemId);
-        if (error) throw error;
-        setItems(items.filter(i => i.id !== itemId));
-        // Remove commission if any
-        await supabase.from('doctor_commissions').delete().eq('treatment_item_id', itemId);
-      } catch (err) {
-        alert("O'chirishda xatolik: " + err.message);
-      }
+      return;
     }
+
+    const item = items.find(i => i.id === itemId);
+    const message = item?.status === 'completed'
+      ? "Bu muolaja bajarilgan. O'chirilsa, unga tegishli to'lov, shifokor komissiyasi va bonus ballari ham o'chiriladi. Davom etasizmi?"
+      : "Haqiqatan ham bu xizmatni o'chirmoqchimisiz?";
+    if (!confirm(message)) return;
+
+    const res = await deleteProcedure(itemId);
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+    setItems(items.filter(i => i.id !== itemId));
   }
 
   const handleAddNewCustomService = async () => {
