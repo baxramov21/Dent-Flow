@@ -6,6 +6,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { Clock, User, Phone, Play, CheckCircle, CreditCard, XCircle, ArrowRight, Edit } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { revertAppointmentBilling } from '@/app/actions/finance'
 
 export default function QueuePage() {
   const { clinic, isLoading: clinicLoading } = useClinic()
@@ -157,39 +158,8 @@ export default function QueuePage() {
       }
 
       if (newStatus === 'cancelled') {
-        const { data: dbAppointment } = await supabase
-          .from('appointments')
-          .select('treatment_plan_id, patient_id')
-          .eq('id', id)
-          .single()
-
-        if (dbAppointment) {
-          const patientId = dbAppointment.patient_id
-          const planId = dbAppointment.treatment_plan_id
-          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-
-          if (planId) {
-            await supabase.from('treatment_items')
-              .update({ status: 'planned', completed_at: null, price_override: null })
-              .eq('treatment_plan_id', planId)
-              .eq('status', 'completed')
-              .gte('completed_at', yesterday)
-          }
-
-          if (patientId) {
-            await supabase.from('payments')
-              .delete()
-              .eq('patient_id', patientId)
-              .or(`notes.like.Avtomatik to'lov%,notes.eq.Qarz to'lovi`)
-              .gte('paid_at', yesterday)
-
-            await supabase.from('medical_history')
-              .delete()
-              .eq('patient_id', patientId)
-              .eq('condition', 'Bajarilgan muolajalar')
-              .gte('reported_at', yesterday)
-          }
-        }
+        const res = await revertAppointmentBilling(id)
+        if (res?.error) console.error(res.error)
       }
 
       // Optimistic update
