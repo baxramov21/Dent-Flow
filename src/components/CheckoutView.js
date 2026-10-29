@@ -145,25 +145,13 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
     setItems([...items, newItem])
   }
 
-  const handleRemoveItem = async (itemId, isNew) => {
-    if (isNew) {
-      if (!confirm("Haqiqatan ham bu xizmatni o'chirmoqchimisiz?")) return;
-      setItems(items.filter(i => i.id !== itemId));
-      return;
-    }
+  const [deletedItemIds, setDeletedItemIds] = useState([])
 
-    const item = items.find(i => i.id === itemId);
-    const message = item?.status === 'completed'
-      ? "Bu muolaja bajarilgan. O'chirilsa, unga tegishli to'lov, shifokor komissiyasi va bonus ballari ham o'chiriladi. Davom etasizmi?"
-      : "Haqiqatan ham bu xizmatni o'chirmoqchimisiz?";
-    if (!confirm(message)) return;
-
-    const res = await deleteProcedure(itemId);
-    if (res.error) {
-      alert(res.error);
-      return;
+  const handleRemoveItem = (itemId, isNew) => {
+    setItems(prev => prev.filter(i => i.id !== itemId))
+    if (!isNew) {
+      setDeletedItemIds(prev => prev.includes(itemId) ? prev : [...prev, itemId])
     }
-    setItems(items.filter(i => i.id !== itemId));
   }
 
   const handleAddNewCustomService = async () => {
@@ -228,6 +216,11 @@ export default function CheckoutView({ appointment, patient, clinicId, dentistId
     setLoading(true)
 
     try {
+      // 0. Process any saved procedures that were removed during checkout
+      for (const delId of deletedItemIds) {
+        await deleteProcedure(delId)
+      }
+
       const selectedItems = items.filter(i => i.selected)
       
       let currentPlanId = appointment?.treatment_plan_id

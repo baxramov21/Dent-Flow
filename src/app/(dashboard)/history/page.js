@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useClinic } from '@/context/ClinicContext'
-import { History, CreditCard, Search, Calendar, User, FileText, Download, Filter, Trash2, AlertTriangle } from 'lucide-react'
+import { History, CreditCard, Search, Calendar, User, FileText, Download, Filter, Trash2, AlertTriangle, Check, RotateCcw } from 'lucide-react'
 import AppleSelect from '@/components/AppleSelect'
 import AppleDateRange from '@/components/AppleDateRange'
-import { deleteProcedure, deletePayment } from '@/app/actions/finance'
+import { batchSaveHistoryDeletions } from '@/app/actions/finance'
 
 const DATE_PRESETS = [
   { value: 'all_time', label: 'Barcha vaqt' },
@@ -197,41 +197,87 @@ export default function HistoryPage() {
     }
   }
 
-  const [deletingId, setDeletingId] = useState(null)
+  // Staged deletions (instant UI removal, persisted once on clicking "Saqlash")
+  const [stagedProcedureIds, setStagedProcedureIds] = useState([])
+  const [stagedPaymentIds, setStagedPaymentIds] = useState([])
+  const [isSavingChanges, setIsSavingChanges] = useState(false)
 
-  const handleDeleteProcedure = async (proc) => {
-    const name = proc.services?.name_uz || proc.services?.name || 'Muolaja'
-    if (!confirm(`"${name}" muolajasini o'chirmoqchimisiz?\n\nUnga tegishli to'lov, shifokor komissiyasi va bonus ballari ham o'chiriladi.`)) return
-    setDeletingId(proc.id)
-    const res = await deleteProcedure(proc.id)
-    setDeletingId(null)
+  const hasUnsavedChanges = stagedProcedureIds.length > 0 || stagedPaymentIds.length > 0
+  const totalStagedCount = stagedProcedureIds.length + stagedPaymentIds.length
+
+  const handleDeleteProcedure = (proc) => {
+    setStagedProcedureIds(prev => prev.includes(proc.id) ? prev : [...prev, proc.id])
+  }
+
+  const handleDeletePayment = (pay) => {
+    setStagedPaymentIds(prev => prev.includes(pay.id) ? prev : [...prev, pay.id])
+  }
+
+  const handleUndoChanges = () => {
+    setStagedProcedureIds([])
+    setStagedPaymentIds([])
+  }
+
+  const handleSaveChanges = async () => {
+    if (!hasUnsavedChanges || isSavingChanges) return
+    setIsSavingChanges(true)
+    const procIdsToSave = [...stagedProcedureIds]
+    const payIdsToSave = [...stagedPaymentIds]
+
+    const res = await batchSaveHistoryDeletions({
+      procedureIds: procIdsToSave,
+      paymentIds: payIdsToSave
+    })
+    setIsSavingChanges(false)
+
     if (res.error) {
       alert(res.error)
       return
     }
+
+    setStagedProcedureIds([])
+    setStagedPaymentIds([])
     fetchData()
   }
 
-  const handleDeletePayment = async (pay) => {
-    if (!confirm(`${pay.amount?.toLocaleString()} UZS to'lovini o'chirmoqchimisiz?\n\nBemorning shu to'lovdan olgan bonus ballari ham o'chiriladi.`)) return
-    setDeletingId(pay.id)
-    const res = await deletePayment(pay.id)
-    setDeletingId(null)
-    if (res.error) {
-      alert(res.error)
-      return
+  // Compute effective procedures & payments after staged deletions (and automatic payment reductions for staged procedures)
+  const activeProcedures = procedures.filter(p => !stagedProcedureIds.includes(p.id))
+
+  // Calculate how much payment should be preview-reduced per treatment_plan_id from staged procedures
+  const stagedPlanReduction = {}
+  procedures.forEach(p => {
+    if (stagedProcedureIds.includes(p.id) && p.treatment_plans?.id) {
+      const planId = p.treatment_plans.id
+      stagedPlanReduction[planId] = (stagedPlanReduction[planId] || 0) + (p.price_override || 0)
     }
-    fetchData()
-  }
+  })
 
-  const filteredProcedures = procedures.filter(p => {
+  // Apply explicit payment deletions + preview reductions for staged procedures
+  const planReductionRemaining = { ...stagedPlanReduction }
+  const activePayments = []
+  payments.forEach(p => {
+    if (stagedPaymentIds.includes(p.id)) return
+    const planId = p.treatment_plans?.id
+    if (planId && planReductionRemaining[planId] > 0) {
+      const reduceBy = Math.min(p.amount || 0, planReductionRemaining[planId])
+      planReductionRemaining[planId] -= reduceBy
+      const newAmount = (p.amount || 0) - reduceBy
+      if (newAmount > 0) {
+        activePayments.push({ ...p, amount: newAmount })
+      }
+    } else {
+      activePayments.push(p)
+    }
+  })
+
+  const filteredProcedures = activeProcedures.filter(p => {
     const q = searchQuery.toLowerCase()
     const patientName = p.treatment_plans?.patients?.full_name?.toLowerCase() || ''
     const serviceName = (p.services?.name_uz || p.services?.name || '').toLowerCase()
     return patientName.includes(q) || serviceName.includes(q)
   })
 
-  const filteredPayments = payments.filter(p => {
+  const filteredPayments = activePayments.filter(p => {
     const q = searchQuery.toLowerCase()
     const patientName = p.patients?.full_name?.toLowerCase() || ''
     const planName = p.treatment_plans?.title?.toLowerCase() || ''
@@ -241,7 +287,7 @@ export default function HistoryPage() {
   // Calculate Debts
   const patientDebts = {}
   
-  procedures.forEach(p => {
+  activeProcedures.forEach(p => {
     const patientId = p.treatment_plans?.patients?.id
     if (!patientId) return
     if (!patientDebts[patientId]) {
@@ -258,7 +304,7 @@ export default function HistoryPage() {
     patientDebts[patientId].procedures.push(p)
   })
 
-  payments.forEach(p => {
+  activePayments.forEach(p => {
     const patientId = p.patients?.id
     if (!patientId) return
     if (!patientDebts[patientId]) {
@@ -297,8 +343,8 @@ export default function HistoryPage() {
     : []
 
   // KPIs
-  const totalRevenue = payments.reduce((acc, p) => acc + p.amount, 0)
-  const totalProcedures = procedures.length
+  const totalRevenue = activePayments.reduce((acc, p) => acc + p.amount, 0)
+  const totalProcedures = activeProcedures.length
   const avgCheck = totalProcedures > 0 ? (totalRevenue / totalProcedures) : 0
   const totalDebt = debtors.reduce((acc, d) => acc + d.debt, 0)
 
@@ -440,8 +486,8 @@ export default function HistoryPage() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         
         {/* Toolbar */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
             <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
               type="text" 
@@ -451,6 +497,53 @@ export default function HistoryPage() {
               style={{ width: '100%', padding: '10px 12px 10px 40px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none' }}
             />
           </div>
+
+          {hasUnsavedChanges && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleUndoChanges}
+                disabled={isSavingChanges}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '10px 14px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: '500',
+                  cursor: isSavingChanges ? 'not-allowed' : 'pointer',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                <RotateCcw size={16} /> Bekor qilish
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveChanges}
+                disabled={isSavingChanges}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 18px',
+                  backgroundColor: '#10B981',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: '600',
+                  cursor: isSavingChanges ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+                  opacity: isSavingChanges ? 0.75 : 1
+                }}
+              >
+                <Check size={18} />
+                {isSavingChanges ? 'Saqlanmoqda...' : `Saqlash (${totalStagedCount})`}
+              </button>
+            </div>
+          )}
+
           <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontWeight: '500', cursor: 'pointer' }}>
             <Download size={18} /> CSV Yuklash
           </button>
@@ -514,9 +607,8 @@ export default function HistoryPage() {
                       <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                         <button
                           onClick={() => handleDeleteProcedure(p)}
-                          disabled={deletingId === p.id}
                           title="O'chirish"
-                          style={{ padding: '6px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444', opacity: deletingId === p.id ? 0.5 : 1 }}
+                          style={{ padding: '6px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444' }}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -580,9 +672,8 @@ export default function HistoryPage() {
                       <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                         <button
                           onClick={() => handleDeletePayment(p)}
-                          disabled={deletingId === p.id}
                           title="To'lovni o'chirish"
-                          style={{ padding: '6px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444', opacity: deletingId === p.id ? 0.5 : 1 }}
+                          style={{ padding: '6px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444' }}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -700,7 +791,6 @@ export default function HistoryPage() {
                                             {permissions?.canViewFinancials && (
                                               <button
                                                 onClick={() => handleDeletePayment(pay)}
-                                                disabled={deletingId === pay.id}
                                                 title="To'lovni o'chirish"
                                                 style={{ padding: '4px', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: '#EF4444' }}
                                               >
@@ -732,7 +822,7 @@ export default function HistoryPage() {
                   <span>Ortiqcha to'lovlar (Muolajasi o'chirilgan yoki bekor qilingan to'lovlar)</span>
                 </div>
                 <p style={{ fontSize: '13px', color: '#92400E', marginBottom: '16px' }}>
-                  Quyidagi bemorlarda bajarilgan muolajalar narxiga qaraganda ko'proq to'lov qayd etilgan. Umumiy tushumni to'g'rilash uchun ortiqcha to'lovlarni o'chirishingiz mumkin:
+                  Quyidagi bemorlarda bajarilgan muolajalar narxiga qaraganda ko'proq to'lov qayd etilgan. Umumiy tushumni to'g'rilash uchun ortiqcha to'lovlarni o'chirishingiz va tepada <strong>Saqlash</strong> tugmasini bosishingiz mumkin:
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {overpaid.map(o => (
@@ -749,7 +839,6 @@ export default function HistoryPage() {
                             <span>{new Date(pay.paid_at).toLocaleDateString('uz-UZ')}: <strong>{pay.amount?.toLocaleString()} UZS</strong></span>
                             <button
                               onClick={() => handleDeletePayment(pay)}
-                              disabled={deletingId === pay.id}
                               title="Shu to'lovni o'chirish"
                               style={{ padding: '4px 6px', backgroundColor: '#FEE2E2', border: 'none', borderRadius: '4px', cursor: 'pointer', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '500' }}
                             >
