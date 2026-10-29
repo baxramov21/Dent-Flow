@@ -290,6 +290,74 @@ export async function deletePayment(paymentId) {
 }
 
 /**
+ * Batch delete multiple procedures and/or payments in a single server call.
+ * Checks auth once and processes all staged deletions together.
+ */
+export async function batchSaveHistoryDeletions({ procedureIds = [], paymentIds = [] }) {
+  try {
+    const staff = await requireStaff()
+    if (staff.role !== 'admin') return { error: 'Faqat admin o\'zgartirishlarni saqlay oladi' }
+
+    // 1. Delete explicitly staged payments first
+    if (paymentIds.length > 0) {
+      const { data: payments } = await supabaseAdmin
+        .from('payments')
+        .select('id, amount, clinic_id, patient_id')
+        .in('id', paymentIds)
+        .eq('clinic_id', staff.clinic_id)
+
+      for (const p of payments || []) {
+        await removePaymentRow(p)
+      }
+    }
+
+    // 2. Delete staged procedures + their commissions + any remaining overpaid plan payments
+    if (procedureIds.length > 0) {
+      const { data: items } = await supabaseAdmin
+        .from('treatment_items')
+        .select('id, clinic_id, status, price_override, treatment_plan_id, services(price)')
+        .in('id', procedureIds)
+        .eq('clinic_id', staff.clinic_id)
+
+      const validItems = items || []
+      if (validItems.length > 0) {
+        const validIds = validItems.map(i => i.id)
+
+        // Delete all commissions and items in bulk
+        await supabaseAdmin.from('doctor_commissions').delete().in('treatment_item_id', validIds)
+        const { error: delErr } = await supabaseAdmin.from('treatment_items').delete().in('id', validIds)
+        if (delErr) throw delErr
+
+        // Group removed completed price by treatment_plan_id
+        const planPriceRemoved = {}
+        for (const item of validItems) {
+          if (item.status === 'completed' && item.treatment_plan_id) {
+            const price = item.price_override ?? item.services?.price ?? 0
+            if (price > 0) {
+              planPriceRemoved[item.treatment_plan_id] = (planPriceRemoved[item.treatment_plan_id] || 0) + price
+            }
+          }
+        }
+
+        // For each affected plan, reduce overpaid payments once
+        for (const [planId, removedPrice] of Object.entries(planPriceRemoved)) {
+          const { billed, paid } = await getPlanTotals(planId)
+          const overpaid = Math.max(0, paid - billed)
+          if (overpaid > 0) {
+            await reducePlanPayments(planId, Math.min(overpaid, removedPrice))
+          }
+        }
+      }
+    }
+
+    return { success: true }
+  } catch (err) {
+    console.error('batchSaveHistoryDeletions error:', err)
+    return { error: 'Saqlashda xatolik: ' + err.message }
+  }
+}
+
+/**
  * Undo the billing side of an appointment that was completed within the
  * last 24h and is now cancelled: procedures go back to "planned", their
  * commissions are removed, and the payments taken for them are deleted
